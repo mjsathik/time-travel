@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHRONO-PROBE — A Time-Travel Journey to NASA's Left-Behind Hardware</title>
+<meta name="description" content="Travel back in time to visit 14 pieces of space hardware left behind by NASA missions.">
+<!-- Three.js is loaded by dynamic import() in the script below, resolved via this import map. -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+/* ===================== THEME ===================== */
+:root{
+  --bg:#03060f; --navy:#0a1630; --panel:rgba(7,15,36,.88);
+  --cyan:#4fe3ff; --amber:#ffb43c; --text:#eaf4ff; --muted:#b4c6e2;
+  --line:rgba(79,227,255,.4); --green:#3ddc84; --grey:#c3cad6;
+  --moon:#8ecbff; --mars:#ff7b4a; --jup:#c59bff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font:16px/1.55 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+[hidden]{display:none!important}
+h1,h2,h3{margin:0;line-height:1.2}
+button,input{font:inherit;color:inherit}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Visible focus ring on every control */
+:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px var(--amber);border-radius:8px}
+
+/* ===================== BUTTONS ===================== */
+.btn{cursor:pointer;border:1.5px solid var(--cyan);background:rgba(79,227,255,.1);color:var(--text);
+  padding:.55rem .95rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;gap:.5rem;
+  transition:background .2s,transform .15s,box-shadow .2s}
+.btn:hover:not(:disabled){background:rgba(79,227,255,.25);box-shadow:0 0 18px rgba(79,227,255,.45)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn.primary{background:var(--cyan);color:#03121c;font-weight:700}
+.btn.primary:hover:not(:disabled){background:#8aefff}
+.btn.amber{border-color:var(--amber);background:rgba(255,180,60,.12)}
+.btn.amber:hover:not(:disabled){background:rgba(255,180,60,.3);box-shadow:0 0 18px rgba(255,180,60,.45)}
+.btn[aria-pressed="true"]{background:var(--amber);color:#1a1000;border-color:var(--amber);font-weight:700}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+kbd{font:inherit;border:1px solid currentColor;border-radius:6px;padding:0 .35rem}
+
+/* ===================== STAGE / OVERLAYS ===================== */
+#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0b1c40 0%,#03060f 70%)}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+/* soft scanline overlay for the HUD */
+.scan{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 2px,rgba(79,227,255,.035) 2px 3px)}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
+body.reduce *{animation:none!important}
+
+/* ===================== TOP BAR ===================== */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;
+  padding:.6rem .8rem;background:linear-gradient(#03060f 40%,rgba(3,6,15,0))}
+.tools{display:flex;flex-wrap:wrap;gap:.5rem;margin-left:auto;align-items:center}
+.seg{display:inline-flex;border-radius:999px;overflow:hidden;border:1.5px solid var(--cyan)}
+.seg .btn{border:0;border-radius:0;padding:.5rem .8rem}
+.log{position:relative}
+.log summary{list-style:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;padding:.5rem .9rem;
+  border:1.5px solid var(--amber);border-radius:999px;background:rgba(255,180,60,.12);font-weight:600}
+.log summary::-webkit-details-marker{display:none}
+.log ol{position:absolute;right:0;top:calc(100% + .4rem);margin:0;padding:.7rem 1rem .7rem 2rem;min-width:260px;max-height:50vh;
+  overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+.log li{margin:.2rem 0}
+
+/* ===================== HUB: PILOT'S DASHBOARD ===================== */
+#hub{position:fixed;inset:0;z-index:10;padding:6.5rem 1rem 0;overflow:auto;display:flex;flex-direction:column;pointer-events:none}
+.hubhead{max-width:560px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:1.1rem 1.2rem;
+  backdrop-filter:blur(10px);box-shadow:0 0 30px rgba(79,227,255,.12)}
+.brand{font-size:clamp(1.6rem,4.5vw,2.4rem);letter-spacing:.14em;color:var(--cyan);text-shadow:0 0 18px rgba(79,227,255,.7)}
+.brand span{color:var(--amber)}
+.tag{color:var(--text);margin:.3rem 0 0;text-shadow:0 1px 8px #000,0 0 14px #000}
+.dock{pointer-events:auto;margin:auto auto 0;width:100%;max-width:1100px;display:grid;grid-template-columns:1.25fr 1.25fr .8fr;gap:.8rem;
+  padding:.9rem;border-radius:24px 24px 0 0;border:1px solid var(--line);border-bottom:0;
+  background:linear-gradient(180deg,rgba(10,22,48,.78),rgba(3,8,20,.94));
+  box-shadow:0 -12px 60px rgba(79,227,255,.2),inset 0 1px 0 rgba(79,227,255,.55)}
+.panel{display:grid;gap:.55rem;align-content:start;padding:.8rem .9rem;border-radius:16px;border:1px solid var(--line);background:rgba(4,12,30,.72)}
+.panel h2{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+.panel label{font-weight:700;color:var(--text)}
+.panel p.hint{margin:0;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:.6rem}
+input[type=date],select{min-height:44px;padding:.4rem .7rem;border-radius:12px;border:1.5px solid var(--cyan);background:#06122a;color:var(--text);color-scheme:dark;width:100%}
+input[type=date]{flex:1 1 170px;width:auto}
+.panel .btn{justify-content:center}
+.panel .seg .btn{flex:1;justify-content:center}
+#nearest{grid-column:1/-1;min-height:1.6rem;margin:0;color:var(--amber);font-weight:700;text-align:center}
+.listcard{margin:1rem}
+#eventList{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+#eventList .btn{width:100%;justify-content:flex-start;border-radius:12px;text-align:left}
+
+/* ===================== TRAVEL OVERLAY ===================== */
+#travel{position:fixed;inset:0;z-index:20;display:grid;place-content:center;text-align:center;pointer-events:none;padding:1rem}
+#counter{font:700 clamp(2.2rem,10vw,6.5rem)/1 ui-monospace,"SF Mono",Menlo,monospace;color:#fff;
+  text-shadow:0 0 24px var(--cyan),0 0 60px var(--cyan);letter-spacing:.04em}
+#counterNote{margin-top:1rem;color:var(--amber);font-weight:700;font-size:1.2rem;text-shadow:0 0 10px #000}
+
+/* ===================== STORY PANEL ===================== */
+#story{position:fixed;z-index:20;right:1rem;top:6.5rem;bottom:1rem;width:min(430px,38vw);overflow:auto;display:flex;flex-direction:column;gap:.8rem}
+#story h1{font-size:1.35rem;color:var(--cyan)}
+.fact{display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem;margin:0}
+.fact dt{color:var(--muted)}
+.fact dd{margin:0;font-weight:600}
+.badge{display:inline-block;padding:.1rem .8rem;border-radius:999px;color:#04101c;font-weight:800}
+.badge.Active{background:var(--green)} .badge.Silent{background:var(--amber)} .badge.Lost{background:var(--grey)}
+.note{margin:0;color:var(--muted);font-style:italic;border-left:3px solid var(--amber);padding-left:.7rem}
+.chnav{display:flex;flex-wrap:wrap;gap:.4rem;margin:0;padding:0;list-style:none}
+.chnav .btn{padding:.35rem .75rem}
+.chnav .btn[aria-current="step"]{background:var(--cyan);color:#03121c;font-weight:700}
+.chnav .btn.speaking::after{content:" ♪"}
+#chapter h2{color:var(--amber);font-size:1.25rem;margin-bottom:.4rem}
+#chapter p{margin:0}
+.pager{display:flex;justify-content:space-between;gap:.5rem;margin-top:auto}
+#sheetToggle{display:none}
+#storyBody{display:contents}
+#unknownOverlay{position:fixed;left:0;right:0;top:22%;z-index:15;text-align:center;pointer-events:none;
+  font:800 clamp(1.4rem,5vw,3rem)/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:#fff;
+  text-shadow:0 0 18px var(--amber),0 0 40px var(--amber);padding-right:min(430px,38vw)}
+
+/* ===================== TEXT-ONLY MODE ===================== */
+body.text-mode #stage{display:none}
+body.text-mode{background:#050b1e;overflow:auto}
+body.text-mode #hub{position:static;display:block;padding:6.5rem 1rem 1rem;pointer-events:auto}
+body.text-mode .dock{margin:1rem auto;border-radius:24px;border-bottom:1px solid var(--line)}
+body.text-mode #story{position:static;width:auto;max-width:760px;margin:6.5rem auto 2rem}
+body.text-mode #unknownOverlay{display:none}
+body:not(.text-mode) .listcard{display:none}
+body.text-mode .scan{display:none}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width:900px){
+  .dock{grid-template-columns:1fr;max-height:62vh;overflow:auto}
+}
+@media (max-width:800px){
+  .tools{margin-left:0}
+  #story{left:0;right:0;bottom:0;top:auto;width:auto;max-height:58vh;border-radius:20px 20px 0 0}
+  #sheetToggle{display:inline-flex;align-self:flex-start}
+  #story.collapsed #storyBody{display:none}
+  #unknownOverlay{padding-right:0;top:14%}
+  body.text-mode #story{position:static;max-height:none;border-radius:18px;margin:10.5rem .8rem 2rem}
+  #hub,body.text-mode #hub{padding-top:10.5rem}
+  .tag{display:none}
+  body.text-mode .tag{display:block}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div id="stage" aria-hidden="true"></div>
+<div class="scan" aria-hidden="true"></div>
+<div id="flash" aria-hidden="true"></div>
+
+<header class="topbar">
+  <button id="btnReturn" class="btn primary" type="button" aria-label="Return to Time Machine (Escape key)" disabled>
+    <span aria-hidden="true">⟲</span> Return to Time Machine <kbd aria-hidden="true">Esc</kbd></button>
+  <div class="tools">
+    <div class="seg" role="group" aria-label="Reading level">
+      <button id="lvlE" class="btn" type="button" aria-pressed="true" aria-label="Explorer reading level, ages 8 to 10">Explorer</button>
+      <button id="lvlS" class="btn" type="button" aria-pressed="false" aria-label="Scientist reading level, ages 11 to 14">Scientist</button>
+    </div>
+    <button id="btnSound" class="btn" type="button" aria-pressed="true" aria-label="Sound effects and narration">Sound: On</button>
+    <button id="btnReduce" class="btn" type="button" aria-pressed="false" aria-label="Reduce motion">Reduce motion</button>
+    <button id="btnText" class="btn" type="button" aria-pressed="false" aria-label="Text-only mode">Text-only mode</button>
+    <details id="log" class="log">
+      <summary aria-label="Journey Log: events explored"><span id="logCount">0 of 14 explored</span></summary>
+      <ol id="logList" aria-label="Events explored"></ol>
+    </details>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HUB ============ -->
+  <section id="hub" aria-labelledby="hubTitle">
+    <div class="hubhead">
+      <h1 id="hubTitle" class="brand">CHRONO<span>-</span>PROBE</h1>
+      <p class="tag">You are strapped into the Time Machine. Use the dashboard to choose when and where to travel, then visit hardware NASA left behind.</p>
+    </div>
+    <div id="dock" class="dock" role="group" aria-label="Time Machine dashboard controls">
+      <form id="dateForm" class="panel" novalidate aria-labelledby="hDate">
+        <h2 id="hDate">1. Set the date</h2>
+        <label for="dateIn">Travel date (YYYY-MM-DD)</label>
+        <div class="row">
+          <input id="dateIn" type="date" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" aria-describedby="nearest">
+          <button class="btn primary" type="submit" aria-label="Travel to the event nearest to the chosen date">Travel</button>
+        </div>
+        <p class="hint">We fly you to the nearest event.</p>
+      </form>
+      <div class="panel" role="group" aria-labelledby="hDest">
+        <h2 id="hDest">2. Pick a destination</h2>
+        <div class="seg" role="group" aria-label="Destination">
+          <button id="btnMoon" class="btn" type="button" aria-pressed="false" aria-label="Destination: Moon">Moon</button>
+          <button id="btnMars" class="btn" type="button" aria-pressed="false" aria-label="Destination: Mars">Mars</button>
+        </div>
+        <label for="missionSel">Mission</label>
+        <div class="row">
+          <select id="missionSel" aria-label="Mission at the chosen destination" style="flex:1 1 150px;width:auto"></select>
+          <button id="btnGo" class="btn primary" type="button" aria-label="Launch to the chosen destination" disabled>Launch</button>
+        </div>
+      </div>
+      <div class="panel" role="group" aria-labelledby="hLuck">
+        <h2 id="hLuck">3. Feeling lucky?</h2>
+        <p class="hint">Jump to any event at random.</p>
+        <button id="btnSurprise" class="btn amber" type="button" aria-label="Surprise Me: travel to a random event">Surprise Me</button>
+      </div>
+      <p id="nearest" role="status"></p>
+    </div>
+    <div class="card listcard">
+      <h2 style="font-size:1.1rem;margin-bottom:.7rem">All 14 events</h2>
+      <ol id="eventList" aria-label="All 14 events"></ol>
+    </div>
+  </section>
+
+  <!-- ============ TIME TRAVEL OVERLAY ============ -->
+  <section id="travel" aria-hidden="true" hidden>
+    <div id="counter">0000-00-00</div>
+    <div id="counterNote"></div>
+  </section>
+
+  <div id="unknownOverlay" hidden>LOCATION UNKNOWN</div>
+
+  <!-- ============ STORY PANEL ============ -->
+  <aside id="story" class="card" aria-label="Story panel" hidden>
+    <button id="sheetToggle" class="btn" type="button" aria-expanded="true" aria-controls="storyBody" aria-label="Collapse or expand the story panel">Story panel ▾</button>
+    <div id="storyBody">
+      <h1 id="evName" tabindex="-1"></h1>
+      <section aria-label="Fact Card">
+        <h3 class="sr-only">Fact Card</h3>
+        <dl class="fact">
+          <dt>Date</dt><dd id="fDate"></dd>
+          <dt>Destination</dt><dd id="fDest"></dd>
+          <dt>Place</dt><dd id="fSite"></dd>
+          <dt>Location today</dt><dd id="fNow"></dd>
+          <dt>Status</dt><dd><span id="fStatus" class="badge"></span></dd>
+        </dl>
+      </section>
+      <p class="note">Imagined narration: the machine's voice is made up for storytelling. The facts come from the mission data.</p>
+      <nav aria-label="Story chapters"><ol id="chnav" class="chnav"></ol></nav>
+      <div id="chapter" aria-live="polite" aria-atomic="true">
+        <h2 id="chTitle"></h2><p id="chText"></p>
+      </div>
+      <div class="pager">
+        <button id="btnPrev" class="btn" type="button" aria-label="Previous chapter">← Back</button>
+        <button id="btnNext" class="btn primary" type="button" aria-label="Next chapter">Next →</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="announce" class="sr-only" role="status" aria-live="polite"></div>
+<noscript><p style="position:relative;z-index:99;padding:1rem">CHRONO-PROBE needs JavaScript. Please enable it and reload.</p></noscript>
+
+<script type="module">
+/* =====================================================================
+   CHRONO-PROBE — sections:
+   1 DATA · 2 STORY TEXT · 3 HELPERS (tween) · 4 STATE · 4b AUDIO · 5 UI
+   6 STATE MACHINE · 7 ENGINE (3D) · 8 SCENE BUILDERS · 9 MODEL BUILDERS · 10 BOOT
+   ===================================================================== */
+
+/* ===================== 1. DATA ===================== */
+const EVENTS = [
+ {id:"surveyor3", date:"1967-04-20", name:"Surveyor 3", dest:"Moon", site:"Ocean of Storms", now:"Moon", status:"Silent",
+  science:"Proved soft landings on the Moon were possible; tested lunar soil with a scoop. Apollo 12 astronauts visited it in Nov 1969 and returned parts to Earth."},
+ {id:"snoopy", date:"1969-05-22", name:"Apollo 10 LM 'Snoopy'", dest:"Moon", site:"Lunar orbit", now:"Unknown", status:"Lost",
+  science:"Dress rehearsal for the first landing, flying within ~15 km of the surface. Ascent stage sent into orbit around the Sun; a 2019 candidate (2018 AV2) is unconfirmed."},
+ {id:"apollo11", date:"1969-07-20", name:"Apollo 11 Laser Retroreflector", dest:"Moon", site:"Sea of Tranquility", now:"Moon", status:"Active",
+  science:"Scientists bounce lasers off it to measure the Earth–Moon distance precisely, revealing the Moon drifts away ~3.8 cm per year."},
+ {id:"lrv", date:"1971-07-31", name:"Apollo 15 Lunar Roving Vehicle", dest:"Moon", site:"Hadley–Apennine", now:"Moon", status:"Silent",
+  science:"First car driven on the Moon; let astronauts travel farther and collect more geologic samples."},
+ {id:"pioneer10", date:"1972-03-03", name:"Pioneer 10", dest:"Jupiter", site:"Outbound", now:"Deep space", status:"Silent",
+  science:"First spacecraft through the asteroid belt and first to fly past Jupiter (Dec 1973). Carries a plaque for any finder. Last signal Jan 2003."},
+ {id:"farUV", date:"1972-04-21", name:"Apollo 16 Far Ultraviolet Camera", dest:"Moon", site:"Descartes Highlands", now:"Moon", status:"Silent",
+  science:"First telescope on the Moon, designed by Dr. George Carruthers; captured ultraviolet images of Earth's upper atmosphere and stars. Film returned to Earth."},
+ {id:"viking1", date:"1976-07-20", name:"Viking 1 Lander", dest:"Mars", site:"Chryse Planitia", now:"Mars", status:"Silent",
+  science:"First successful US Mars landing; sent the first color images from the surface and tested soil for signs of life. Silent since Nov 1982."},
+ {id:"voyager1", date:"1977-09-05", name:"Voyager 1", dest:"Jupiter & Saturn", site:"Outbound", now:"Deep space", status:"Active",
+  science:"Revealed volcanoes on Io and details of Saturn's rings; entered interstellar space in Aug 2012. Carries the Golden Record."},
+ {id:"sojourner", date:"1997-07-04", name:"Pathfinder & Sojourner", dest:"Mars", site:"Ares Vallis", now:"Mars", status:"Silent",
+  science:"First wheeled rover on Mars; studied rocks in an ancient flood plain. Named by 12-year-old student Valerie Ambroise. Silent since Sep 1997."},
+ {id:"mpl", date:"1999-12-03", name:"Mars Polar Lander", dest:"Mars", site:"South polar region", now:"Unknown", status:"Lost",
+  science:"Planned to study polar soil and water. Contact lost during landing; crash site never confirmed. Lessons improved later landers."},
+ {id:"opportunity", date:"2004-01-25", name:"Opportunity Rover", dest:"Mars", site:"Meridiani Planum", now:"Mars", status:"Silent",
+  science:"Planned for 90 sols, it worked for ~15 years and drove over 45 km; found strong evidence of past liquid water. Silent since a dust storm in Jun 2018."},
+ {id:"phoenix", date:"2008-05-25", name:"Phoenix Lander", dest:"Mars", site:"Northern plains", now:"Mars", status:"Silent",
+  science:"Dug into the arctic ground with its robotic arm and confirmed water ice just below the surface. Silent since Nov 2008."},
+ {id:"insight", date:"2018-11-26", name:"InSight Lander", dest:"Mars", site:"Elysium Planitia", now:"Mars", status:"Silent",
+  science:"Its seismometer detected over 1,300 marsquakes, revealing the size of Mars's core. Mission ended Dec 2022 when dust covered its solar panels."},
+ {id:"ingenuity", date:"2021-04-19", name:"Ingenuity Helicopter", dest:"Mars", site:"Jezero Crater", now:"Mars", status:"Silent",
+  science:"First powered, controlled flight on another planet; flew 72 times. Carries a swatch of Wright Flyer fabric. Named by student Vaneeza Rupani. Grounded Jan 2024 after rotor damage."}
+];
+// Marker color by destination (color is never the only cue: labels name the destination too)
+const DEST_COLOR = {"Moon":"#8ecbff","Mars":"#ff7b4a","Jupiter":"#c59bff","Jupiter & Saturn":"#c59bff"};
+const sceneOf = ev => ev.now; // scene type: Moon | Mars | Deep space | Unknown
+
+/* ===================== 2. STORY TEXT (written only from the facts above) =====================
+   goal = mission goal phrase · expl = Explorer retelling of `science` · hw = hardware that made it possible
+   end  = closing fact for "Where I Am Today"                                                        */
+const LORE = {
+ surveyor3:{goal:"prove soft landings on the Moon were possible and test lunar soil with a scoop",
+  expl:"I proved that a soft landing on the Moon could work. I tested moon soil with my scoop. In Nov 1969, Apollo 12 astronauts visited me. They took some of my parts back to Earth!",
+  hw:"my scoop", end:"Apollo 12 astronauts visited me in Nov 1969 and returned parts of me to Earth."},
+ snoopy:{goal:"fly a dress rehearsal for the first landing, passing within about 15 km of the surface",
+  expl:"I was the dress rehearsal for the first Moon landing. I flew about 15 km above the surface. Later, my top part was sent to orbit the Sun. A 2019 candidate called 2018 AV2 might be me. Nobody has confirmed it.",
+  hw:"my ascent stage", end:"My ascent stage was sent into orbit around the Sun. A 2019 candidate (2018 AV2) is unconfirmed."},
+ apollo11:{goal:"sit on the Moon so scientists could bounce lasers off me and measure the Earth–Moon distance",
+  expl:"Scientists shoot lasers at me and the light bounces back. That lets them measure the Earth–Moon distance very precisely. They found the Moon drifts away about 3.8 cm every year!",
+  hw:"my laser retroreflector", end:"Scientists bounce lasers off me, so I am still working."},
+ lrv:{goal:"carry astronauts farther across the Moon so they could collect more geologic samples",
+  expl:"I was the first car driven on the Moon. I let astronauts travel farther. They collected more rock and soil samples!",
+  hw:"my wheels", end:"I rest on the Moon at Hadley–Apennine."},
+ pioneer10:{goal:"fly through the asteroid belt and past Jupiter",
+  expl:"I was the first spacecraft to go through the asteroid belt. I was the first to fly past Jupiter, in Dec 1973. I carry a plaque for anyone who finds me.",
+  hw:"my plaque", end:"My last signal came in Jan 2003."},
+ farUV:{goal:"work as the first telescope on the Moon, taking ultraviolet images of Earth's upper atmosphere and stars",
+  expl:"I was the first telescope on the Moon. Dr. George Carruthers designed me. I took ultraviolet pictures of Earth's upper air and of stars. My film came back to Earth!",
+  hw:"my ultraviolet camera", end:"I am on the Moon at the Descartes Highlands. My film returned to Earth."},
+ viking1:{goal:"land on Mars, send color images from the surface, and test soil for signs of life",
+  expl:"I was the first successful US landing on Mars. I sent the first color pictures from the surface. I also tested soil for signs of life.",
+  hw:"my cameras and soil-testing arm", end:"I have been silent since Nov 1982."},
+ voyager1:{goal:"study Jupiter and Saturn",
+  expl:"I found volcanoes on Io. I saw details of Saturn's rings. In Aug 2012, I entered interstellar space. I carry the Golden Record.",
+  hw:"my Golden Record", end:"I entered interstellar space in Aug 2012, and I am still active."},
+ sojourner:{goal:"roll across Mars as the first wheeled rover and study rocks in an ancient flood plain",
+  expl:"I was the first wheeled rover on Mars. I studied rocks in an ancient flood plain. A 12-year-old student, Valerie Ambroise, named me!",
+  hw:"my wheels", end:"I have been silent since Sep 1997."},
+ mpl:{goal:"study polar soil and water on Mars",
+  expl:"I planned to study polar soil and water. Contact was lost during my landing. My crash site was never confirmed. Lessons from me helped later landers.",
+  hw:"my robotic arm", end:"Contact was lost during landing, and my crash site was never confirmed."},
+ opportunity:{goal:"work for a planned 90 sols on Mars",
+  expl:"I was planned for 90 sols. I worked for about 15 years! I drove over 45 km. I found strong evidence of past liquid water.",
+  hw:"my wheels", end:"I have been silent since a dust storm in Jun 2018."},
+ phoenix:{goal:"dig into the arctic ground of Mars with my robotic arm",
+  expl:"I dug into the arctic ground with my robotic arm. I confirmed there is water ice just below the surface.",
+  hw:"my robotic arm and scoop", end:"I have been silent since Nov 2008."},
+ insight:{goal:"listen for marsquakes with my seismometer",
+  expl:"My seismometer detected over 1,300 marsquakes. They showed scientists how big the core of Mars is.",
+  hw:"my seismometer", end:"My mission ended in Dec 2022 when dust covered my solar panels."},
+ ingenuity:{goal:"fly under power and control on another planet",
+  expl:"I made the first powered, controlled flight on another planet. I flew 72 times! I carry a swatch of Wright Flyer fabric. A student, Vaneeza Rupani, named me.",
+  hw:"my rotor blades", end:"I was grounded in Jan 2024 after rotor damage."}
+};
+const fmtDate = iso => new Date(iso+"T00:00:00Z").toLocaleDateString("en-GB",{timeZone:"UTC",day:"numeric",month:"long",year:"numeric"});
+const place = n => n==="Moon" ? "the Moon" : n;
+const where = ev => ev.now==="Unknown" ? "unknown" : ev.now==="Deep space" ? "in deep space" : "on "+place(ev.now);
+
+/** Build the 4 chapters for an event at a reading level ("explorer" | "scientist"). */
+function chaptersFor(ev, level){
+  const L = LORE[ev.id], ex = level==="explorer", out = ev.site==="Outbound";
+  const c1 = ex ? `Hello, explorer! I am ${ev.name}. I was sent to ${L.goal}.`
+                : `I am ${ev.name}, and my mission goal was to ${L.goal}.`;
+  const c2 = out
+    ? (ex ? `I left Earth and headed outbound toward ${ev.dest}. The date on my Fact Card is ${fmtDate(ev.date)}.`
+          : `I left Earth and headed outbound toward ${ev.dest}. The date on my Fact Card is ${fmtDate(ev.date)}, a key moment in my journey.`)
+    : (ex ? `I left Earth and traveled to ${place(ev.dest)}. My place in this story is ${ev.site}. The date on my Fact Card is ${fmtDate(ev.date)}.`
+          : `I left Earth and traveled to ${place(ev.dest)}. My place in this story is ${ev.site}, and the date on my Fact Card, ${fmtDate(ev.date)}, marks a key moment in my journey.`);
+  const c3 = ex ? `${L.expl} Look at ${L.hw}!`
+                : `${ev.science} The hardware that made this possible: ${L.hw}.`;
+  const c4 = ex ? `Today I am ${where(ev)}. My status is ${ev.status}. ${L.end}`
+                : `Where I am today: ${where(ev)}. Status: ${ev.status}. ${L.end}`;
+  return [
+    {title:"Why I Was Sent",        text:c1},
+    {title:"The Journey",           text:c2},
+    {title:"What I Discovered",     text:c3},
+    {title:"Where I Am Today",      text:c4}
+  ];
+}
+
+/** Spoken script for chapters 2-4 (i = 1..3), same facts as the panel but phrased for the ear. Chapter 1 is not narrated. */
+function narrationFor(ev, i, level){
+  const L = LORE[ev.id], out = ev.site==="Outbound";
+  if(i===1) return out
+    ? `I left Earth and headed outbound toward ${ev.dest}. The date on my Fact Card is ${fmtDate(ev.date)}.`
+    : `I left Earth and traveled to ${place(ev.dest)}. My place in this story is ${ev.site}. The date on my Fact Card is ${fmtDate(ev.date)}.`;
+  if(i===2) return level==="explorer" ? `${L.expl} Look at ${L.hw}!` : `${L.expl} Watch ${L.hw} in the 3D scene.`;   // points at the animation; claims nothing extra
+  return `${ev.now==="Unknown" ? "My location today is unknown." : `Today, I am ${where(ev)}.`} My status is ${ev.status}. ${L.end}`;
+}
+
+/* ===================== 3. HELPERS ===================== */
+const $ = id => document.getElementById(id);
+const Ease = {
+  linear:t=>t,
+  outCubic:t=>1-Math.pow(1-t,3),
+  inOutCubic:t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2,
+  inOutQuad:t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,
+  outBack:t=>{const c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);},
+  inExpo:t=>t===0?0:Math.pow(2,10*t-10)
+};
+/** Tiny GSAP-style tween: tween({dur, ease, update(t,eased), done}) -> Promise with .cancel(). */
+function tween({dur=1000, ease=Ease.inOutCubic, update=()=>{}, done}={}){
+  let raf, cancelled=false;
+  const p = new Promise(res=>{
+    const t0 = performance.now();
+    const step = now=>{
+      if(cancelled) return res(false);
+      const t = Math.min(1,(now-t0)/dur);
+      update(t, ease(t));
+      if(t<1) raf = requestAnimationFrame(step);
+      else { if(done) done(); res(true); }
+    };
+    raf = requestAnimationFrame(step);
+  });
+  p.cancel = ()=>{cancelled=true; cancelAnimationFrame(raf);};
+  return p;
+}
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+const parseISO = iso => new Date(iso+"T00:00:00Z");
+const toISO = d => d.toISOString().slice(0,10);
+
+/* ===================== 4. STATE ===================== */
+const S = {
+  state:"HUB",            // HUB → TRAVEL → DESTINATION → RETURN
+  current:null, lastId:null, chapter:0, dest:null,
+  level:"explorer",
+  reduce:matchMedia("(prefers-reduced-motion: reduce)").matches,
+  text:false, visited:new Set(), sheetOpen:true, sound:true
+};
+
+/* ===================== 7/8/9 hooks: the 3D layer fills these in (see ENGINE section) =====================
+   Contract used by the state machine:
+   beginWormhole(dir, reduce) · wormhole(t) · endWormhole() · load(ev|null) · chapter(ev,i) · setActive(bool) */
+const Stage = {
+  ready:false,
+  beginWormhole(){}, wormhole(){}, endWormhole(){}, load(){}, chapter(){}, setActive(){}, hubInfo(){}
+};
+
+/* ===================== 4b. AUDIO: synthesized travel sounds + spoken chapter narration =====================
+   No audio files: Sfx builds everything with the Web Audio API; Voice uses the browser's speech engine.
+   Both stay silent until the user clicks (browser autoplay rules) and both obey the Sound toggle. */
+const Sfx = (()=>{
+  let ctx=null, master=null, noise=null, echoIn=null;
+  const LEVEL=.5;                                              // overall volume: kept mild
+  const SCALE=[523.25,587.33,659.25,783.99,880];               // pentatonic: any note combination sounds pleasant
+  function ensure(){
+    if(ctx){ if(ctx.state==="suspended") ctx.resume(); return ctx; }
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
+    ctx=new AC();
+    const comp=ctx.createDynamicsCompressor();                 // keeps stacked sounds from clipping
+    master=ctx.createGain(); master.gain.value=S.sound?LEVEL:0; master.connect(comp); comp.connect(ctx.destination);
+    echoIn=ctx.createGain(); const dly=ctx.createDelay(1), fb=ctx.createGain(), wet=ctx.createGain();   // soft space echo
+    dly.delayTime.value=.3; fb.gain.value=.4; wet.gain.value=.5;
+    echoIn.connect(master); echoIn.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(master);
+    noise=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);  // 2 s of brown noise (soft rumble), looped
+    const d=noise.getChannelData(0); let last=0;
+    for(let i=0;i<d.length;i++){ last=(last+.02*(Math.random()*2-1))/1.02; d[i]=last*3.5; }
+    return ctx;
+  }
+  /** One enveloped oscillator. o: {type,f0,f1,dur,peak,attack,at,lp:[from,to],to} */
+  function tone(o){
+    const t0=ctx.currentTime+(o.at||0), osc=ctx.createOscillator(), g=ctx.createGain();
+    osc.type=o.type||"sine"; osc.frequency.setValueAtTime(o.f0,t0);
+    if(o.f1) osc.frequency.exponentialRampToValueAtTime(o.f1,t0+o.dur);
+    g.gain.setValueAtTime(.0001,t0); g.gain.exponentialRampToValueAtTime(o.peak,t0+(o.attack||.02)); g.gain.exponentialRampToValueAtTime(.0001,t0+o.dur);
+    if(o.lp){ const f=ctx.createBiquadFilter(); f.type="lowpass"; f.frequency.setValueAtTime(o.lp[0],t0); f.frequency.exponentialRampToValueAtTime(o.lp[1],t0+o.dur); osc.connect(f); f.connect(g); }
+    else osc.connect(g);
+    g.connect(o.to||master); osc.start(t0); osc.stop(t0+o.dur+.05);
+  }
+  /** Filtered-noise "wind" sweeping up (outbound) or down (return). */
+  function whoosh(T,up){
+    const t0=ctx.currentTime, src=ctx.createBufferSource(), bp=ctx.createBiquadFilter(), g=ctx.createGain();
+    src.buffer=noise; src.loop=true; bp.type="bandpass"; bp.Q.value=1.1;
+    const [a,b,c]=up?[180,2600,500]:[2600,180,600];
+    bp.frequency.setValueAtTime(a,t0); bp.frequency.exponentialRampToValueAtTime(b,t0+T*.8); bp.frequency.exponentialRampToValueAtTime(c,t0+T);
+    g.gain.setValueAtTime(.0001,t0); g.gain.exponentialRampToValueAtTime(.4,t0+T*.55); g.gain.exponentialRampToValueAtTime(.0001,t0+T);
+    src.connect(bp); bp.connect(g); g.connect(master); src.start(t0); src.stop(t0+T+.1);
+  }
+  /** Soft arrival (up) or homecoming (down) chime. */
+  function chime(t,up){
+    if(up){
+      [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone({f0:f,dur:2.4,peak:.07,attack:.03,at:t+i*.07,to:echoIn}));
+      tone({f0:96,f1:44,dur:.7,peak:.22,attack:.02,at:t});     // gentle landing thump
+    } else [783.99,659.25,523.25].forEach((f,i)=>tone({f0:f,dur:2,peak:.07,attack:.03,at:t+i*.12,to:echoIn}));
+  }
+  return {
+    /** Engine swell + whoosh + shimmer for a wormhole trip lasting `total` seconds (dir 1 out, -1 back). */
+    travel({total:T,dir}){
+      if(!S.sound||!ensure()) return;
+      const up=dir>0;
+      tone({type:"sine",f0:up?520:780,f1:up?1040:390,dur:.22,peak:.1,attack:.01,to:echoIn});                          // "engage" ping
+      tone({type:"triangle",f0:up?60:240,f1:up?240:60,dur:T,peak:.2,attack:T*.5,lp:up?[250,1400]:[1400,250]});         // engine swell
+      tone({type:"sine",f0:up?90:330,f1:up?330:90,dur:T,peak:.1,attack:T*.5});
+      whoosh(T,up);
+      const n=Math.max(1,Math.min(12,Math.round(T*2.4)));
+      for(let i=0;i<n;i++){ const k=up?i:n-1-i;                                                                         // rising / falling shimmer
+        tone({type:"triangle",f0:SCALE[k%5]*2**Math.floor(k/5),dur:.8,peak:.045,attack:.01,at:.3+i*Math.max(.1,T-1.2)/n,to:echoIn}); }
+      chime(Math.max(0,T-.15),up);
+    },
+    mute(m){ if(master) master.gain.setTargetAtTime(m?0:LEVEL,ctx.currentTime,.05); }
+  };
+})();
+
+const Voice = (()=>{
+  const ok = "speechSynthesis" in window;
+  let voice=null, sid=0;
+  const v = { active:null, onchange(){}, ok };                  // active = index of the chapter being read (or null)
+  const MONTHS={Jan:"January",Feb:"February",Mar:"March",Apr:"April",Jun:"June",Jul:"July",Aug:"August",Sep:"September",Oct:"October",Nov:"November",Dec:"December"};
+  /** Expand abbreviations and use contractions so the speech engine sounds conversational. */
+  const clean = t => t.replace(/Dr\. /g,"Doctor ").replace(/~/g,"about ").replace(/(\d)\s?km\b/g,"$1 kilometers").replace(/(\d)\s?cm\b/g,"$1 centimeters")
+    .replace(/Earth–Moon/g,"Earth to Moon").replace(/–/g," ").replace(/&/g," and ").replace(/\bLM\b/g,"L M").replace(/\bUS\b/g,"U S").replace(/\bAV2\b/g,"A V 2")
+    .replace(/\bI am\b/g,"I'm").replace(/\bI have\b/g,"I've")
+    .replace(/\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g,m=>MONTHS[m]||m);
+  /* Voice choice: "Premium / Enhanced / Natural" voices sound far less robotic than the default compact ones. */
+  const NOVELTY=/\b(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Fred|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Ralph|Junior|Kathy|Princess|Grandma|Grandpa|Rocko|Shelley|Sandy|Flo|Eddy|Reed)\b/i;
+  const LIKED=/\b(Ava|Zoe|Evan|Samantha|Allison|Nathan|Tom|Daniel|Karen|Moira|Serena|Aria|Jenny|Guy|Sonia|Ryan|Libby)\b/i;
+  const score = x => (/premium|enhanced|natural|neural/i.test(x.name)?100:0) + (/online|google/i.test(x.name)?40:0) + (LIKED.test(x.name)?30:0)
+    + (/en[-_](US|GB)/i.test(x.lang)?10:0) + (x.localService?3:0) - (NOVELTY.test(x.name)?200:0);
+  function pickVoice(){
+    if(!ok) return; const vs=speechSynthesis.getVoices().filter(x=>/^en/i.test(x.lang)); if(!vs.length) return;
+    voice = vs.slice().sort((a,b)=>score(b)-score(a))[0];
+  }
+  if(ok){ pickVoice(); speechSynthesis.addEventListener?.("voiceschanged",pickVoice); }
+  v.stop = ()=>{ sid++; if(ok) speechSynthesis.cancel(); if(v.active!==null){ v.active=null; v.onchange(); } };
+  /** Splits text into short phrases with their own pitch, speed and pause, so delivery rises, falls and breathes like a storyteller. */
+  function plan(text,rate){
+    const out=[], sentences = clean(text).match(/\S.*?[.!?](?=\s|$)|\S.+$/g) || [clean(text)];
+    sentences.forEach((s,si)=>{
+      const chunks=[];
+      (s.match(/[^,;]+[,;]?/g)||[s]).map(p=>p.trim()).filter(Boolean).forEach(p=>{      // merge tiny fragments into the previous phrase
+        if(chunks.length && chunks[chunks.length-1].length<14) chunks[chunks.length-1]+=" "+p; else chunks.push(p); });
+      const excl=/!$/.test(s), base=.99+((si*7)%5)*.012;                                 // gentle pitch variety from sentence to sentence
+      chunks.forEach((c,ci)=>{
+        const last=ci===chunks.length-1, final=last && si===sentences.length-1;
+        out.push({text:c, rate:rate*(last?.95:1.02), pitch:base+(excl&&last?.07:0)-(last&&!excl?.03:0), pause:final?0:last?420:160});
+      });
+    });
+    return out;
+  }
+  /** Reads `text` phrase by phrase with natural pauses. `tag` = chapter index (for the ♪ marker). */
+  v.speak = (text,{rate=.95,tag=null}={})=>{
+    if(!ok) return;
+    v.stop(); const id=sid; v.active=tag; v.onchange();
+    const q=plan(text,rate), finish=()=>{ if(id===sid && v.active!==null){ v.active=null; v.onchange(); } };
+    const next=i=>{
+      if(id!==sid) return; if(i>=q.length) return finish();
+      const c=q[i], u=new SpeechSynthesisUtterance(c.text);
+      if(voice){ u.voice=voice; u.lang=voice.lang; } else u.lang="en-US";
+      u.rate=c.rate; u.pitch=c.pitch; u.volume=.9;
+      u.onend=()=>setTimeout(()=>next(i+1),c.pause);
+      u.onerror=e=>{ if(e && (e.error==="canceled"||e.error==="interrupted")) return; finish(); };
+      speechSynthesis.speak(u);
+    };
+    setTimeout(()=>{ if(id===sid){ pickVoice(); next(0); } },80);   // small gap after cancel(): some browsers drop an instant re-speak
+  };
+  v.plan = plan;
+  return v;
+})();
+
+/* ===================== 5. UI ===================== */
+const el = {};
+["hub","travel","story","counter","counterNote","flash","nearest","dateIn","dateForm","btnSurprise","btnReturn","btnPrev","btnNext",
+ "btnReduce","btnText","btnSound","lvlE","lvlS","dock","missionSel","btnGo","btnMoon","btnMars","eventList","logCount","logList","evName","fDate","fDest","fSite","fNow",
+ "fStatus","chnav","chTitle","chText","unknownOverlay","announce","sheetToggle","stage"].forEach(id=>el[id]=$(id));
+
+function setView(v){
+  el.hub.hidden = v!=="hub";
+  el.travel.hidden = v!=="travel";
+  el.story.hidden = v!=="dest";
+  el.btnReturn.disabled = v!=="dest";
+}
+function say(msg){ el.announce.textContent=""; setTimeout(()=>el.announce.textContent=msg,30); }
+
+/** Text-mode list of all 14 events, in date order. */
+function buildEventList(){
+  [...EVENTS].sort((a,b)=>a.date<b.date?-1:1).forEach(ev=>{
+    const li = document.createElement("li"), b = document.createElement("button");
+    b.type="button"; b.className="btn";
+    b.textContent=`${ev.date} — ${ev.name} (${ev.dest}, ${ev.status})`;
+    b.setAttribute("aria-label",`${ev.date}, ${ev.name}, destination ${ev.dest}, status ${ev.status}. Open story.`);
+    b.addEventListener("click",()=>go(ev,`Opening ${ev.name}.`));
+    li.appendChild(b); el.eventList.appendChild(li);
+  });
+}
+/** Random event from a list; never the one visited last (when there is a choice). */
+function pick(list){
+  const pool = list.filter(e=>e.id!==S.lastId), from = pool.length ? pool : list;
+  return from[Math.floor(Math.random()*from.length)];
+}
+/** Destination switch (Moon / Mars). Clicking the active one clears it. Fills the mission list. */
+function setDest(d){
+  S.dest = S.dest===d ? null : d;
+  Stage.hubInfo({dest:S.dest});
+  el.btnMoon.setAttribute("aria-pressed",S.dest==="Moon"); el.btnMars.setAttribute("aria-pressed",S.dest==="Mars");
+  const sel = el.missionSel; sel.innerHTML="";
+  if(!S.dest){ sel.add(new Option("Choose Moon or Mars first","")); sel.disabled=true; el.btnGo.disabled=true; return; }
+  sel.disabled=false; el.btnGo.disabled=false;
+  sel.add(new Option(`Random ${S.dest} mission`,""));
+  EVENTS.filter(e=>e.dest===S.dest).sort((a,b)=>a.date<b.date?-1:1)
+    .forEach(e=>sel.add(new Option(`${e.date.slice(0,4)} — ${e.name}`,e.id)));
+}
+
+function renderLog(){
+  el.logCount.textContent = `${S.visited.size} of ${EVENTS.length} explored`;
+  el.logList.innerHTML = "";
+  if(!S.visited.size){ el.logList.innerHTML="<li>Nothing yet. Pick a date!</li>"; return; }
+  EVENTS.filter(e=>S.visited.has(e.id)).forEach(e=>{
+    const li=document.createElement("li"); li.textContent=`${e.date.slice(0,4)} — ${e.name}`; el.logList.appendChild(li);
+  });
+}
+
+function renderStory(){
+  const ev = S.current, ch = chaptersFor(ev,S.level)[S.chapter];
+  el.chTitle.textContent = `Chapter ${S.chapter+1}: ${ch.title}`;
+  el.chText.textContent = ch.text;
+  [...el.chnav.children].forEach((li,i)=>{
+    const b=li.firstChild; if(i===S.chapter) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current");
+  });
+  el.btnPrev.disabled = S.chapter===0;
+  el.btnNext.disabled = S.chapter===3;
+}
+function renderFacts(ev){
+  el.evName.textContent = ev.name;
+  el.fDate.textContent = fmtDate(ev.date);
+  el.fDest.textContent = ev.dest;
+  el.fSite.textContent = ev.site;
+  el.fNow.textContent = ev.now;
+  el.fStatus.textContent = ev.status;
+  el.fStatus.className = "badge "+ev.status;
+}
+function buildChapterNav(){
+  ["Why I Was Sent","The Journey","What I Discovered","Where I Am Today"].forEach((t,i)=>{
+    const li=document.createElement("li"), b=document.createElement("button");
+    b.type="button"; b.className="btn"; b.textContent=`${i+1}. ${t}`;
+    b.setAttribute("aria-label",`Chapter ${i+1}: ${t}`);
+    b.addEventListener("click",()=>setChapter(i,true));
+    li.appendChild(b); el.chnav.appendChild(li);
+  });
+}
+/** Shows chapter i. With narrate=true (chapter-number buttons) it also reads chapters 2-4 aloud (chapter 1 stays silent); clicking the chapter being read stops it. */
+function setChapter(i,narrate=false){
+  i = Math.max(0,Math.min(3,i));
+  const stopping = narrate && Voice.active===i;
+  S.chapter = i;
+  renderStory();
+  if(Stage.ready && !S.text) Stage.chapter(S.current,S.chapter);
+  if(narrate && i>0 && !stopping && S.sound)       // chapter 1 is not narrated; 2-4 start straight with the story (no title)
+    Voice.speak(narrationFor(S.current,i,S.level),{rate:S.level==="explorer"?.9:.96,tag:i});
+  else Voice.stop();
+}
+function setSound(on){
+  S.sound=on; el.btnSound.setAttribute("aria-pressed",on); el.btnSound.textContent = on?"Sound: On":"Sound: Off";
+  Sfx.mute(!on); if(!on) Voice.stop();
+}
+function setLevel(l){
+  S.level=l; Voice.stop();
+  el.lvlE.setAttribute("aria-pressed",l==="explorer"); el.lvlS.setAttribute("aria-pressed",l==="scientist");
+  if(S.state==="DESTINATION") renderStory();
+}
+function setReduce(on){ S.reduce=on; document.body.classList.toggle("reduce",on); el.btnReduce.setAttribute("aria-pressed",on); }
+function setTextMode(on){
+  if(on && S.state!=="HUB" && S.state!=="DESTINATION") return;
+  S.text=on; document.body.classList.toggle("text-mode",on);
+  el.btnText.setAttribute("aria-pressed",on);
+  el.stage.hidden = on;
+  Stage.setActive(!on && Stage.ready);
+  if(on) el.unknownOverlay.hidden = true;
+  else if(Stage.ready){                       // rebuild the scene that matches the current state
+    const dest = S.state==="DESTINATION" ? S.current : null;
+    Stage.load(dest);
+    el.unknownOverlay.hidden = !(dest && sceneOf(dest)==="Unknown");
+    if(dest) Stage.chapter(dest,S.chapter);
+  }
+}
+function setSheet(open){
+  S.sheetOpen=open; el.story.classList.toggle("collapsed",!open);
+  el.sheetToggle.setAttribute("aria-expanded",open); el.sheetToggle.textContent = open?"Story panel ▾":"Story panel ▴";
+}
+
+function bindUI(){
+  buildEventList(); buildChapterNav(); renderLog(); setDest(null);
+  el.dateIn.addEventListener("input",()=>Stage.hubInfo({date:el.dateIn.value}));
+  el.dateForm.addEventListener("submit",e=>{
+    e.preventDefault();
+    const v = el.dateIn.value.trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(parseISO(v))){ el.nearest.textContent="Please enter a date as YYYY-MM-DD."; return; }
+    const {ev,days} = nearest(v);
+    const note = days===0 ? `Exact match! ${ev.name}` : `Nearest event: ${ev.name} — ${days} ${days===1?"day":"days"} from your date`;
+    el.nearest.textContent = note;
+    go(ev,note);
+  });
+  el.btnSurprise.addEventListener("click",()=>{
+    const ev = pick(EVENTS);
+    el.nearest.textContent = `Surprise! Heading to ${ev.name}.`;
+    go(ev,`Surprise! ${ev.name}`);
+  });
+  el.btnMoon.addEventListener("click",()=>setDest("Moon"));
+  el.btnMars.addEventListener("click",()=>setDest("Mars"));
+  el.btnGo.addEventListener("click",()=>{
+    if(!S.dest) return;
+    const id = el.missionSel.value;
+    const ev = id ? EVENTS.find(e=>e.id===id) : pick(EVENTS.filter(e=>e.dest===S.dest));
+    el.nearest.textContent = `Destination ${S.dest}: ${ev.name}.`;
+    go(ev,`Destination ${S.dest}: ${ev.name}`);
+  });
+  el.btnReturn.addEventListener("click",returnToHub);
+  el.btnPrev.addEventListener("click",()=>setChapter(S.chapter-1));
+  el.btnNext.addEventListener("click",()=>setChapter(S.chapter+1));
+  el.lvlE.addEventListener("click",()=>setLevel("explorer"));
+  el.lvlS.addEventListener("click",()=>setLevel("scientist"));
+  el.btnReduce.addEventListener("click",()=>setReduce(!S.reduce));
+  el.btnText.addEventListener("click",()=>setTextMode(!S.text));
+  el.sheetToggle.addEventListener("click",()=>setSheet(!S.sheetOpen));
+  addEventListener("keydown",e=>{ if(e.key==="Escape" && S.state==="DESTINATION"){ e.preventDefault(); returnToHub(); } });
+  matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change",e=>setReduce(e.matches));
+  setReduce(S.reduce);
+  el.btnSound.addEventListener("click",()=>setSound(!S.sound));
+  Voice.onchange=()=>[...el.chnav.children].forEach((li,i)=>li.firstChild.classList.toggle("speaking",Voice.active===i));
+  document.addEventListener("visibilitychange",()=>{ if(document.hidden) Voice.stop(); });
+}
+
+/** Nearest event to an ISO date; ties go to the earlier event. */
+function nearest(iso){
+  const t = parseISO(iso).getTime();
+  let best=null, bd=Infinity;
+  [...EVENTS].sort((a,b)=>a.date<b.date?-1:1).forEach(ev=>{
+    const d = Math.abs(parseISO(ev.date).getTime()-t);
+    if(d<bd){ bd=d; best=ev; }
+  });
+  return {ev:best, days:Math.round(bd/86400000)};
+}
+
+/* ===================== 6. STATE MACHINE: HUB → TRAVEL → DESTINATION → RETURN ===================== */
+function go(ev,note=""){
+  if(S.state!=="HUB") return;
+  S.lastId = ev.id; S.current = ev;
+  transition(ev,"in",note);
+}
+function returnToHub(){
+  if(S.state!=="DESTINATION") return;
+  transition(null,"out","Returning to the Time Machine");
+}
+async function flash(on,ms){
+  if(S.reduce) ms = Math.min(ms,200);
+  await tween({dur:ms,ease:Ease.inOutQuad,update:(t)=>{ el.flash.style.opacity = on?t:1-t; }});
+}
+/** Plays the wormhole (or a short fade when motion is reduced), swaps scenes at the flash peak. */
+async function transition(ev,dir,note){
+  const toDest = dir==="in";
+  S.state = toDest ? "TRAVEL" : "RETURN";
+  say(note); Voice.stop();
+  const text = S.text || !Stage.ready;
+  if(!text){
+    setView("travel");
+    el.counterNote.textContent = note;
+    const from = toDest ? new Date() : parseISO(S.current.date);
+    const to   = toDest ? parseISO(ev.date) : new Date();
+    const dur = S.reduce ? 700 : 4000;
+    Sfx.travel({total:(dur+(S.reduce?200:toDest?450:350))/1000, dir:toDest?1:-1});   // starts inside the click gesture
+    Stage.beginWormhole(toDest?1:-1, S.reduce);
+    el.counter.textContent = toISO(S.reduce ? to : from);
+    await tween({dur, ease:S.reduce?Ease.linear:Ease.inOutCubic, update:(t,e)=>{
+      Stage.wormhole(t);
+      if(!S.reduce) el.counter.textContent = toISO(new Date(from.getTime()+(to.getTime()-from.getTime())*e));
+    }});
+    await flash(true,toDest?450:350);      // flash peak hides the scene swap
+    Stage.endWormhole();
+    Stage.load(toDest?ev:null);
+  } else Sfx.travel({total:.7,dir:toDest?1:-1});   // text mode: short whoosh + chime
+  if(toDest){
+    S.state="DESTINATION"; S.chapter=0;
+    S.visited.add(ev.id); renderLog();
+    renderFacts(ev); setView("dest"); renderStory();
+    el.unknownOverlay.hidden = !(sceneOf(ev)==="Unknown" && !S.text);
+    if(!text) Stage.chapter(ev,0);
+    el.evName.focus({preventScroll:true});
+    say(`Arrived at ${ev.name}. Story panel open.`);
+  } else {
+    S.state="HUB"; S.current = null;
+    el.unknownOverlay.hidden = true;
+    setView("hub");
+    el.dateIn.focus({preventScroll:true});
+    say("Back at the Time Machine.");
+  }
+  if(!text) await flash(false,700);
+}
+
+/* ===================== 7. ENGINE (3D) ===================== */
+// Three.js modules, filled in by initEngine() (loaded lazily so a blocked CDN falls back to Text-only mode)
+let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, OutputPass;
+let renderer, composer, bloomPass, renderPass, camera, controls, clock;
+let world = null;          // world currently rendered: {scene, update, cam, model, holder}
+let held = null;           // world hidden behind the wormhole (disposed on load)
+let camTween = null, engineActive = true, viewMode = 0;   // viewMode: 0 none, 1 destination (story panel), 2 hub (dashboard)
+
+/* ---- procedural helpers shared by scenes and models ---- */
+/** Seeded RNG (mulberry32) so every visit looks the same. */
+function rng(seed){ let a = seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function hash2(x,y){ let h=Math.imul(x,374761393)+Math.imul(y,668265263); h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
+/** Smooth value noise + fractal sum, used for terrain height and textures. */
+function vnoise(x,y){
+  const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi, u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  const a=hash2(xi,yi), b=hash2(xi+1,yi), c=hash2(xi,yi+1), d=hash2(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function fbm(x,y,oct=4){ let s=0,a=.5,f=1; for(let i=0;i<oct;i++){ s+=a*vnoise(x*f,y*f); f*=2; a*=.5; } return s; }
+/** Draws into a 2D canvas and returns a Three texture (no external images needed). */
+function canvasTex(w,h,draw,{repeat=0,srgb=true}={}){
+  const c=document.createElement("canvas"); c.width=w; c.height=h; draw(c.getContext("2d"),w,h);
+  const t=new THREE.CanvasTexture(c);
+  if(srgb) t.colorSpace=THREE.SRGBColorSpace;
+  if(repeat){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(repeat,repeat); }
+  t.anisotropy=4; return t;
+}
+/** Soft round glow sprite texture. */
+function glowTex(color="#fff"){
+  return canvasTex(128,128,(g,w,h)=>{
+    const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    r.addColorStop(0,color); r.addColorStop(.25,color); r.addColorStop(1,"rgba(0,0,0,0)");
+    g.fillStyle=r; g.fillRect(0,0,w,h);
+  });
+}
+/** Frees GPU memory: geometries, materials and their textures (called on every scene switch). */
+function disposeObject(root){
+  if(!root) return;
+  root.traverse(o=>{
+    if(o.geometry) o.geometry.dispose();
+    if(o.isInstancedMesh) o.dispose();
+    const mats = o.material ? (Array.isArray(o.material)?o.material:[o.material]) : [];
+    mats.forEach(m=>{
+      for(const k in m){ const v=m[k]; if(v && v.isTexture) v.dispose(); }
+      if(m.uniforms) for(const k in m.uniforms){ const v=m.uniforms[k].value; if(v && v.isTexture) v.dispose(); }
+      m.dispose();
+    });
+  });
+}
+function retire(w){ if(!w) return; if(w.dispose) w.dispose(); disposeObject(w.scene); }
+
+/* ---- camera helpers ---- */
+/** Shifts the 3D view so the subject stays visible beside the story panel / above the bottom sheet. */
+function applyOffset(){
+  if(!camera) return;
+  const w=innerWidth, h=innerHeight;
+  if(viewMode===1){
+    if(w>800) camera.setViewOffset(w,h,Math.min(430,w*.38)/2,0,w,h);
+    else camera.setViewOffset(w,h,0,h*.16,w,h);
+  } else if(viewMode===2){                       // lift the scene above the dashboard
+    const dh = el.hub.hidden ? 0 : Math.min(el.dock.offsetHeight, h*.6);
+    camera.setViewOffset(w,h,0,dh/2,w,h);
+  } else camera.clearViewOffset();
+}
+/** Eased camera move (GSAP-style). Jumps instantly when motion is reduced. */
+function camTo(pos,target,dur=1500){
+  if(camTween) camTween.cancel();
+  if(S.reduce || dur<=0){ camera.position.copy(pos); controls.target.copy(target); controls.update(); return; }
+  const p0=camera.position.clone(), t0=controls.target.clone();
+  camTween = tween({dur, ease:Ease.inOutCubic, update:(t,e)=>{
+    camera.position.lerpVectors(p0,pos,e); controls.target.lerpVectors(t0,target,e); controls.update();
+  }});
+}
+function rotY(v,a){ const c=Math.cos(a), s=Math.sin(a); return new THREE.Vector3(v.x*c+v.z*s, v.y, -v.x*s+v.z*c); }
+/** Chapter camera presets around the model. */
+function chapterCamera(i){
+  const c=world.cam, m=world.model, f=(m&&m.focus)||{p:[0,.5,0],d:3};
+  const fp=new THREE.Vector3(...f.p);
+  fp.add(world.holder ? world.holder.userData.base||world.holder.position : new THREE.Vector3());
+  const rel=c.pos.clone().sub(c.target);               // default offset from the target
+  switch(i){
+    case 0: return [c.pos.clone(), c.target.clone()];
+    case 1: { const r=rotY(rel,.9); r.y=Math.max(r.y,rel.length()*.35); return [c.target.clone().add(r.multiplyScalar(1.1)), c.target.clone()]; }
+    case 2: { const d=rotY(rel,-.35).normalize().multiplyScalar(f.d); d.y=Math.max(d.y,f.d*.3); return [fp.clone().add(d), fp]; }
+    default:{ const r=rotY(rel,-1.1); return [c.target.clone().add(r.multiplyScalar(1.15)), c.target.clone()]; }
+  }
+}
+/** Model "arrives" (Chapter 2): floats in from a start offset to its resting place. */
+function arriveAnim(){
+  const h=world&&world.holder; if(!h || S.reduce) return;
+  const b=h.userData.base||(h.userData.base=h.position.clone());
+  const from=new THREE.Vector3(...(h.userData.from||[0,4,0]));
+  tween({dur:2200, ease:Ease.outCubic, update:(t,e)=>{ h.position.copy(b).addScaledVector(from,1-e); }});
+}
+
+/* ---- engine boot ---- */
+async function initEngine(){
+  const [T, oc, ec, rp, ub, op] = await Promise.all([
+    import("three"),
+    import("three/addons/controls/OrbitControls.js"),
+    import("three/addons/postprocessing/EffectComposer.js"),
+    import("three/addons/postprocessing/RenderPass.js"),
+    import("three/addons/postprocessing/UnrealBloomPass.js"),
+    import("three/addons/postprocessing/OutputPass.js")
+  ]);
+  THREE=T; OrbitControls=oc.OrbitControls; EffectComposer=ec.EffectComposer; RenderPass=rp.RenderPass;
+  UnrealBloomPass=ub.UnrealBloomPass; OutputPass=op.OutputPass;
+
+  // Throws if WebGL is unavailable -> boot() switches to Text-only mode
+  renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:"high-performance"});
+  const pr = Math.min(devicePixelRatio||1, 1.75), w=innerWidth, h=innerHeight;
+  renderer.setPixelRatio(pr); renderer.setSize(w,h);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  el.stage.appendChild(renderer.domElement);
+  renderer.domElement.setAttribute("aria-hidden","true");
+  renderer.domElement.addEventListener("webglcontextlost",e=>{ e.preventDefault(); engineActive=false; Stage.ready=false; el.btnText.disabled=true; setTextMode(true); });
+
+  camera = new THREE.PerspectiveCamera(55,w/h,.1,3000);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false; controls.enabled=false;
+  controls.rotateSpeed=.7; controls.zoomSpeed=.8;
+  controls.addEventListener("start",()=>{ if(camTween) camTween.cancel(); });
+
+  // Post-processing: MSAA render target + bloom (cyan/amber glow) + tone-mapped output
+  const rt = new THREE.WebGLRenderTarget(w*pr,h*pr,{type:THREE.HalfFloatType, samples:4});
+  composer = new EffectComposer(renderer, rt); composer.setPixelRatio(pr); composer.setSize(w,h);
+  renderPass = new RenderPass(new THREE.Scene(), camera);
+  bloomPass = new UnrealBloomPass(new THREE.Vector2(w,h), .65, .55, .82);
+  composer.addPass(renderPass); composer.addPass(bloomPass); composer.addPass(new OutputPass());
+
+  addEventListener("resize",()=>{
+    const W=innerWidth, H=innerHeight;
+    renderer.setSize(W,H); composer.setSize(W,H);
+    camera.aspect=W/H; camera.updateProjectionMatrix(); applyOffset();
+  });
+
+  if(window.ResizeObserver) new ResizeObserver(()=>applyOffset()).observe(el.dock);   // dashboard height changes
+  addEventListener('pointermove',e=>{ ptr.tx=e.clientX/innerWidth*2-1; ptr.ty=-(e.clientY/innerHeight*2-1); },{passive:true});
+  clock = new THREE.Clock();
+  Stage.load(null);               // build the Hub
+  (function frame(){
+    requestAnimationFrame(frame);
+    if(!engineActive || document.hidden){ clock.getDelta(); return; }   // pause when hidden / text mode
+    const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime;
+    if(world){ if(world.update) world.update(dt,t); if(world.model && world.model.update) world.model.update(dt,t); }
+    if(controls.enabled) controls.update();
+    composer.render(dt);
+  })();
+}
+
+/* ---- Stage: the contract the state machine uses ---- */
+Object.assign(Stage,{
+  /** Swap in the wormhole tunnel (dir 1 = outbound to the past, -1 = reverse). Reduce-motion keeps the scene and fades instead. */
+  beginWormhole(dir,reduce){
+    if(reduce) return;
+    if(camTween) camTween.cancel();
+    held = world;
+    world = buildWormhole(dir);
+    renderPass.scene = world.scene; controls.enabled=false;
+    viewMode=0; applyOffset();
+  },
+  wormhole(t){ if(world && world.progress) world.progress(t); },
+  endWormhole(){},
+  /** Build and show the Hub (ev = null) or a destination. Disposes whatever was showing before. */
+  load(ev){
+    if(camTween) camTween.cancel();
+    const old=world; retire(old); if(held && held!==old) retire(held); held=null;
+    world = ev ? buildDestination(ev) : buildHub();
+    renderPass.scene = world.scene;
+    camera.fov = 55; camera.updateProjectionMatrix();
+    const c=world.cam, f=world.model&&world.model.focus;
+    if(ev && camera.aspect<1){                 // portrait: pull back so the hardware fits
+      const k=1+(1-camera.aspect)*.9;
+      c.pos=c.target.clone().add(c.pos.clone().sub(c.target).multiplyScalar(k)); c.max=(c.max||20)*k; if(f) f.d*=k;
+    }
+    camera.position.copy(c.pos); controls.target.copy(c.target); camera.lookAt(c.target);
+    controls.minDistance = Math.min(c.min||1, f?f.d*.7:99); controls.maxDistance = c.max||20;
+    controls.maxPolarAngle = c.polar ?? Math.PI*.495;
+    controls.enabled = !!ev; controls.update();
+    viewMode = ev ? 1 : 2; applyOffset();
+  },
+  /** Chapter i: camera move + model animation (laser, scoop dig, lift-off ...). */
+  chapter(ev,i){
+    if(!world || !world.model) return;
+    const [p,t]=chapterCamera(i);
+    camTo(p,t,i===2?1600:1500);
+    if(i===1) arriveAnim();
+    if(world.model.act) world.model.act(i);
+  },
+  /** Mirrors the dashboard (date / destination) onto the cockpit hologram. */
+  hubInfo(p){ Object.assign(HUB_INFO,p); if(world && world.refresh) world.refresh(); },
+  setActive(on){ engineActive = !!on; }
+});
+
+/* ===================== 8. SCENE BUILDERS ===================== */
+const V3 = (x,y,z)=>new THREE.Vector3(x,y,z);
+const smooth = (a,b,x)=>{ const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
+/** Tileable (periodic) value noise, so repeated ground textures show no seams. */
+function pnoise(x,y,p){
+  const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi, u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  const x0=((xi%p)+p)%p, x1=(x0+1)%p, y0=((yi%p)+p)%p, y1=(y0+1)%p;
+  const a=hash2(x0,y0), b=hash2(x1,y0), c=hash2(x0,y1), d=hash2(x1,y1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function tfbm(x,y,p,oct){ let s=0,a=.5,f=1,tot=0; for(let i=0;i<oct;i++){ s+=a*pnoise(x*f,y*f,p*f); tot+=a; f*=2; a*=.5; } return s/tot; }
+
+/** Tileable speckled ground texture drawn with canvas pixels. base = [r,g,b]. */
+function groundTex(base,seed,contrast,rep=60){
+  return canvasTex(256,256,(g,w,h)=>{
+    const im=g.createImageData(w,h), d=im.data;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      const n=tfbm(x/w*8,y/h*8,8,5), sp=hash2(x+seed*131,y+seed*17)>.992?.55:1;
+      const k=(.7+n*contrast)*sp*(.94+.12*hash2(x,y)), i=(y*w+x)*4;
+      d[i]=Math.min(255,base[0]*k); d[i+1]=Math.min(255,base[1]*k); d[i+2]=Math.min(255,base[2]*k); d[i+3]=255;
+    }
+    g.putImageData(im,0,0);
+  },{repeat:rep});
+}
+/** Starfield on a big sphere (pixel-sized points, no fog). */
+function starfield(count,radius,seed,size=1.6){
+  const R=rng(seed), pos=new Float32Array(count*3), col=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    const u=R()*2-1, a=R()*6.2832, s=Math.sqrt(1-u*u), k=.55+R()*.45, tint=R();
+    pos[i*3]=Math.cos(a)*s*radius; pos[i*3+1]=u*radius; pos[i*3+2]=Math.sin(a)*s*radius;
+    col[i*3]=k*(tint>.7?1:.85); col[i*3+1]=k*.92; col[i*3+2]=k*(tint<.3?1:.8);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position",new THREE.BufferAttribute(pos,3)); g.setAttribute("color",new THREE.BufferAttribute(col,3));
+  const p=new THREE.Points(g,new THREE.PointsMaterial({size,sizeAttenuation:false,vertexColors:true,fog:false,depthWrite:false,transparent:true,opacity:.95}));
+  p.frustumCulled=false; return p;
+}
+/** Drifting soft particles (dust, floating hub motes). Call .userData.tick(dt,t) each frame. */
+function particles({count,box,color,size,seed,vel,opacity=.6,additive=true,wrapY=true}){
+  const R=rng(seed), pos=new Float32Array(count*3), col=new Float32Array(count*3), cs=color.map(c=>new THREE.Color(c));
+  for(let i=0;i<count;i++){
+    pos[i*3]=(R()-.5)*box[0]; pos[i*3+1]=R()*box[1]; pos[i*3+2]=(R()-.5)*box[2];
+    const c=cs[Math.floor(R()*cs.length)]; col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position",new THREE.BufferAttribute(pos,3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute("color",new THREE.BufferAttribute(col,3));
+  const m=new THREE.PointsMaterial({size,map:glowTex("#fff"),vertexColors:true,transparent:true,opacity,depthWrite:false,fog:false,
+    blending:additive?THREE.AdditiveBlending:THREE.NormalBlending});
+  const pts=new THREE.Points(g,m); pts.frustumCulled=false;
+  pts.userData.tick=(dt,t)=>{
+    for(let i=0;i<count;i++){
+      pos[i*3]+=vel[0]*dt+Math.sin(t*.5+i)*.1*dt; pos[i*3+1]+=vel[1]*dt; pos[i*3+2]+=vel[2]*dt;
+      if(pos[i*3]>box[0]/2) pos[i*3]-=box[0]; else if(pos[i*3]<-box[0]/2) pos[i*3]+=box[0];
+      if(pos[i*3+1]>box[1]) pos[i*3+1]-=box[1]; else if(pos[i*3+1]<0) pos[i*3+1]+=box[1];
+      if(pos[i*3+2]>box[2]/2) pos[i*3+2]-=box[2]; else if(pos[i*3+2]<-box[2]/2) pos[i*3+2]+=box[2];
+    }
+    g.attributes.position.needsUpdate=true;
+  };
+  return pts;
+}
+/** Heightfield terrain with craters / dunes. Flat near the centre so the hardware sits level. */
+function makeTerrain(o){
+  const R=rng(o.seed), cs=[];
+  for(let i=0;i<o.craters;i++){
+    const a=R()*6.2832, d=22+Math.sqrt(R())*(o.size*.46-22), r=2+R()*R()*13;
+    cs.push([Math.cos(a)*d,Math.sin(a)*d,r]);
+  }
+  const heightAt=(x,z)=>{
+    const k=smooth(o.flatR,o.flatR+18,Math.hypot(x,z));
+    let h=(fbm(x*.018+o.seed*10,z*.018,4)-.5)*o.amp*2*k;
+    if(o.ripple) h+=Math.sin(x*.7+fbm(x*.08,z*.08,3)*9)*o.ripple*k;
+    for(const c of cs){
+      const d=Math.hypot(x-c[0],z-c[1])/c[2];
+      if(d<1.6){ if(d<1) h-=(1-d*d)*c[2]*o.depth; h+=Math.exp(-(((d-1)/.2)**2))*c[2]*o.depth*.35; }
+    }
+    return h;
+  };
+  const geo=new THREE.PlaneGeometry(o.size,o.size,o.seg,o.seg); geo.rotateX(-Math.PI/2);
+  const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++) p.setY(i,heightAt(p.getX(i),p.getZ(i)));
+  geo.computeVertexNormals();
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:o.tex,bumpMap:o.tex,bumpScale:o.bump,roughness:1,metalness:0}));
+  mesh.receiveShadow=true;
+  return {mesh,heightAt};
+}
+/** Instanced low-poly rocks scattered on the terrain (kept clear of the centre). */
+function scatterRocks(heightAt,{count,seed,color,minR=6,maxR=120,smin=.12,smax=.7}){
+  const R=rng(seed), im=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),
+    new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}),count), d=new THREE.Object3D();
+  for(let i=0;i<count;i++){
+    const a=R()*6.2832, r=minR+Math.sqrt(R())*(maxR-minR), x=Math.cos(a)*r, z=Math.sin(a)*r, s=smin+R()*R()*(smax-smin);
+    d.position.set(x,heightAt(x,z)+s*.25,z); d.rotation.set(R()*3,R()*3,R()*3); d.scale.set(s*(.8+R()*.6),s*.6,s*(.8+R()*.6));
+    d.updateMatrix(); im.setMatrixAt(i,d.matrix);
+  }
+  im.castShadow=true; im.receiveShadow=true; return im;
+}
+/** Procedural Earth (continents, clouds, ice caps) with a soft blue halo. */
+function makeEarth(r){
+  const tex=canvasTex(512,256,(g,w,h)=>{
+    const im=g.createImageData(w,h), d=im.data;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      const n=tfbm(x/w*6,y/h*3,6,5), cl=tfbm(x/w*8+3,y/h*4+1,8,4), lat=Math.abs(y/h-.5)*2;
+      let R_,G_,B_;
+      if(n>.54){ const m=tfbm(x/w*12,y/h*6,12,3); R_=70+m*110; G_=110+m*60; B_=55+m*30; }
+      else { const dp=Math.min(1,(.54-n)*5); R_=20+30*(1-dp); G_=70+55*(1-dp); B_=150+60*(1-dp); }
+      const wv=Math.max(Math.max(0,Math.min(1,(cl-.52)*4))*.85, Math.max(0,Math.min(1,(lat-.82)*8)));
+      const i=(y*w+x)*4; d[i]=R_+(245-R_)*wv; d[i+1]=G_+(247-G_)*wv; d[i+2]=B_+(250-B_)*wv; d[i+3]=255;
+    }
+    g.putImageData(im,0,0);
+  });
+  const grp=new THREE.Group();
+  const globe=new THREE.Mesh(new THREE.SphereGeometry(r,48,32),new THREE.MeshBasicMaterial({map:tex,fog:false}));
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex("#5aa8ff"),transparent:true,opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+  halo.scale.setScalar(r*3.6); grp.add(globe,halo); grp.userData.globe=globe; return grp;
+}
+/** Turns a model into a faint, fog-shrouded silhouette (Unknown scenes). */
+function silhouetteify(group){
+  const map=new Map();
+  group.traverse(o=>{
+    if(!o.isMesh) return;
+    const arr=Array.isArray(o.material)?o.material:[o.material];
+    const out=arr.map(m=>{ if(!map.has(m)) map.set(m,new THREE.MeshBasicMaterial({color:0x7f93b3,transparent:true,opacity:.42,depthWrite:false})); return map.get(m); });
+    o.material=Array.isArray(o.material)?out:out[0]; o.castShadow=false; o.receiveShadow=false;
+  });
+  map.forEach((_,old)=>{ for(const k in old){ const v=old[k]; if(v && v.isTexture) v.dispose(); } old.dispose(); });
+}
+
+/* ---------- HUB: you sit inside the Time Machine cockpit ---------- */
+const HUB_INFO = {date:"", dest:null};   // mirrors the dashboard so the 3D hologram shows the chosen date / destination
+const ptr = {x:0,y:0,tx:0,ty:0};         // pointer parallax (look around from the seat)
+/** LED rows + dial gauges, drawn on a canvas (dash and overhead panels). */
+function panelTex(w,h,seed){
+  return canvasTex(w,h,(g,W,H)=>{
+    g.fillStyle="#06101f"; g.fillRect(0,0,W,H);
+    const R=rng(seed), cols=Math.floor(W/14);
+    for(let r=0;r<3;r++) for(let i=0;i<cols;i++){ g.fillStyle=R()>.55?"#4fe3ff":R()>.5?"#ffb43c":"#17304f"; g.globalAlpha=.4+R()*.6; g.fillRect(8+i*14,10+r*14,8,8); }
+    g.globalAlpha=1; g.lineWidth=3;
+    for(let k=0;k<5;k++){
+      const cx=W*(.12+k*.19), cy=H*.68, rr=H*.22;
+      g.strokeStyle="#4fe3ff"; g.beginPath(); g.arc(cx,cy,rr,Math.PI*.8,Math.PI*2.2); g.stroke();
+      g.strokeStyle="#ffb43c"; g.beginPath(); g.moveTo(cx,cy); const a=Math.PI*(.9+R()*1.1); g.lineTo(cx+Math.cos(a)*rr*.9,cy+Math.sin(a)*rr*.9); g.stroke();
+    }
+    g.strokeStyle="#4fe3ff"; g.lineWidth=2; g.strokeRect(2,2,W-4,H-4);
+  });
+}
+function buildHub(){
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x02050d); scene.fog=new THREE.FogExp2(0x030813,.013);
+  scene.add(new THREE.AmbientLight(0x5f7fc0,.5));
+  const ringLight=new THREE.PointLight(0x4fe3ff,260,60,2); ringLight.position.set(0,2.6,-9); scene.add(ringLight);
+  const deskLight=new THREE.PointLight(0xffb43c,22,9,2); deskLight.position.set(0,1.7,2.8); scene.add(deskLight);
+  const cabinLight=new THREE.PointLight(0x4fe3ff,12,9,2); cabinLight.position.set(0,2.9,3); scene.add(cabinLight);
+  scene.add(starfield(1600,90,5,1.5));
+
+  const metal=new THREE.MeshStandardMaterial({color:0x16294f,metalness:.55,roughness:.4});
+  const cyan=new THREE.MeshStandardMaterial({color:0x06202c,emissive:0x4fe3ff,emissiveIntensity:2.2,metalness:.5,roughness:.3});
+  const amber=new THREE.MeshStandardMaterial({color:0x2a1a04,emissive:0xffb43c,emissiveIntensity:2,metalness:.5,roughness:.3});
+
+  // Cockpit frame: the first rib is the thick windscreen frame; ribs and stringers recede toward the vortex
+  const AX=1.3;                                                                   // height of the cabin axis
+  for(let i=0;i<6;i++){
+    const z=1.2-i*2.8, rib=new THREE.Mesh(new THREE.TorusGeometry(3.7,i?.13:.24,10,72),metal), line=new THREE.Mesh(new THREE.TorusGeometry(3.5,.035,6,72),amber);
+    rib.position.set(0,AX,z); line.position.set(0,AX,z+.12); scene.add(rib,line);
+  }
+  const sg=new THREE.CylinderGeometry(.05,.05,16.4,6); sg.rotateX(Math.PI/2);
+  for(let k=0;k<10;k++){ const a=k/10*Math.PI*2, s=new THREE.Mesh(sg,metal); s.position.set(Math.cos(a)*3.7,AX+Math.sin(a)*3.7,-7); scene.add(s); }
+
+  // Curved dashboard that wraps around the seat, with an amber rim light
+  const dashTex=panelTex(1024,160,42);
+  const dash=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.1,.7,48,1,true,Math.PI-1.15,2.3),
+    new THREE.MeshStandardMaterial({color:0x0b1630,map:dashTex,emissive:0xffffff,emissiveMap:dashTex,emissiveIntensity:.85,metalness:.4,roughness:.5,side:THREE.BackSide}));
+  dash.position.set(0,.65,4.2); scene.add(dash);
+  const rimG=new THREE.TorusGeometry(2.7,.05,8,48,2.3); rimG.rotateZ(-Math.PI/2-1.15); rimG.rotateX(Math.PI/2);
+  const rim=new THREE.Mesh(rimG,amber); rim.position.set(0,1,4.2); scene.add(rim);
+
+  // Overhead panel
+  const over=new THREE.Mesh(new THREE.PlaneGeometry(3.4,.7),new THREE.MeshStandardMaterial({color:0x0b1630,map:panelTex(512,104,7),emissive:0xffffff,emissiveMap:panelTex(512,104,7),emissiveIntensity:.8}));
+  over.position.set(0,3.05,.3); over.rotation.x=.55; scene.add(over);
+
+  // Armrests with blinking buttons, a joystick (right) and a time lever (left)
+  const blink=[]; let lever, stick;
+  for(const sx of [-1,1]){
+    const a=new THREE.Mesh(new THREE.BoxGeometry(.34,.14,1.5),metal); a.position.set(sx*1.3,.78,2.7); scene.add(a);
+    const st=new THREE.Mesh(new THREE.BoxGeometry(.05,.02,1.1),cyan); st.position.set(sx*1.3,.86,2.7); scene.add(st);
+    for(let b=0;b<3;b++){
+      const m=new THREE.MeshStandardMaterial({color:0x111111,emissive:b%2?0xffb43c:0x4fe3ff,emissiveIntensity:2}), o=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),m);
+      o.position.set(sx*1.3,.9,2.3+b*.25); scene.add(o); blink.push({m,f:1.5+b*.7+(sx>0?.4:0),p:b*1.3});
+    }
+  }
+  lever=new THREE.Group(); lever.position.set(-1.05,.86,2.3); scene.add(lever);
+  { const s=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.5,8),metal); s.position.y=.25; const k=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),amber); k.position.y=.52; lever.add(s,k); }
+  stick=new THREE.Group(); stick.position.set(1.05,.86,2.3); scene.add(stick);
+  { const s=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.45,8),metal); s.position.y=.22; const k=new THREE.Mesh(new THREE.SphereGeometry(.08,12,10),cyan); k.position.y=.47; stick.add(s,k); }
+
+  // Destination-time hologram floating above the dash (mirrors the date + destination chosen on the dashboard)
+  const rd=document.createElement("canvas"); rd.width=512; rd.height=250; const g=rd.getContext("2d");
+  const rtex=new THREE.CanvasTexture(rd); rtex.colorSpace=THREE.SRGBColorSpace;
+  const MONO="ui-monospace,Menlo,Consolas,monospace";
+  const draw=()=>{
+    g.clearRect(0,0,512,250); g.fillStyle="rgba(3,14,30,.86)"; g.fillRect(0,0,512,250);
+    g.strokeStyle="#4fe3ff"; g.lineWidth=3; g.strokeRect(3,3,506,244); g.textAlign="left";
+    const row=(y,label,val,col)=>{ g.fillStyle="#9fb8dd"; g.font="bold 18px "+MONO; g.fillText(label,22,y); g.fillStyle=col; g.font="bold 50px "+MONO; g.fillText(val,22,y+46); };
+    const last=EVENTS.find(e=>e.id===S.lastId);
+    row(34,"DESTINATION TIME",HUB_INFO.date||"----------","#ffb43c");
+    row(112,"PRESENT TIME",new Date().toISOString().slice(0,10),"#3ddc84");
+    row(190,"LAST DEPARTED",last?last.date:"----------","#ff7a6a");
+    g.fillStyle="#9fb8dd"; g.font="bold 18px "+MONO; g.fillText("DEST.",372,34);
+    g.fillStyle="#4fe3ff"; g.font="bold 38px "+MONO; g.fillText(HUB_INFO.dest?HUB_INFO.dest.toUpperCase():"ANY",372,76);
+    g.fillStyle="rgba(0,0,0,.2)"; for(let y=0;y<250;y+=4) g.fillRect(0,y,512,1);
+    rtex.needsUpdate=true;
+  };
+  draw();
+  const holo=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.78),new THREE.MeshBasicMaterial({map:rtex,transparent:true,opacity:.95,depthWrite:false,toneMapped:false}));
+  holo.position.set(0,1.43,1.62); holo.rotation.x=-.18; scene.add(holo);
+  const emit=new THREE.Mesh(new THREE.TorusGeometry(.55,.02,8,48).rotateX(Math.PI/2),cyan); emit.position.set(0,1.03,1.62); scene.add(emit);
+
+  // Time vortex beyond the windscreen: spiral shader backdrop + the chrono-ring
+  const vortexMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0}},
+    vertexShader:"varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+    fragmentShader:`varying vec2 vUv; uniform float uTime;
+      void main(){ vec2 p=vUv*2.-1.; float r=length(p), a=atan(p.y,p.x);
+        float arms=pow(sin(a*3.+log(r+.02)*5.-uTime*.9)*.5+.5,2.), arms2=pow(sin(a*5.-log(r+.02)*7.+uTime*.6)*.5+.5,3.);
+        float fall=smoothstep(1.,.15,r), core=exp(-r*6.);
+        vec3 col=vec3(.03,.2,.55)*arms*fall*1.6+vec3(.1,.8,1.)*arms2*fall*.7+vec3(1.,.65,.2)*core*1.8;
+        gl_FragColor=vec4(col,clamp(fall*(.25+.6*arms)+core,0.,1.)); }`});
+  const vortex=new THREE.Mesh(new THREE.CircleGeometry(16,64),vortexMat); vortex.position.set(0,2.6,-27); scene.add(vortex);
+
+  const core=new THREE.Group(); core.position.set(0,2.6,-13); core.scale.setScalar(1.18); scene.add(core);
+  const ring=new THREE.Group(); core.add(ring);
+  ring.add(new THREE.Mesh(new THREE.TorusGeometry(2.2,.09,16,96),cyan));
+  const ticks=new THREE.InstancedMesh(new THREE.BoxGeometry(.05,.2,.05),amber,72), d=new THREE.Object3D();
+  for(let i=0;i<72;i++){ const a=i/72*Math.PI*2; d.position.set(Math.cos(a)*2.56,Math.sin(a)*2.56,0); d.rotation.set(0,0,a-Math.PI/2); d.scale.set(1,i%6===0?1.9:1,1); d.updateMatrix(); ticks.setMatrixAt(i,d.matrix); }
+  ring.add(ticks);
+  const PAL={"Moon":0x8ecbff,"Mars":0xff7b4a};
+  [...EVENTS].sort((a,b)=>a.date<b.date?-1:1).forEach((ev,i,arr)=>{                 // 14 orbs, one per event (decoration)
+    const a=Math.PI/2-i/arr.length*Math.PI*2, c=new THREE.Color(PAL[ev.dest]||0xc59bff);
+    const orb=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:2.2}));
+    orb.position.set(Math.cos(a)*2.2,Math.sin(a)*2.2,0); ring.add(orb);
+  });
+  const inner=new THREE.Mesh(new THREE.TorusGeometry(1.75,.035,12,96),amber); core.add(inner);
+  const gyro=new THREE.Mesh(new THREE.TorusGeometry(1.95,.025,10,96),cyan); core.add(gyro);
+  const discMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0}},
+    vertexShader:"varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+    fragmentShader:`varying vec2 vUv; uniform float uTime;
+      void main(){ vec2 p=vUv*2.-1.; float r=length(p), a=atan(p.y,p.x);
+        float s=sin(a*4.+r*14.-uTime*2.2)*.5+.5, s2=sin(a*7.-r*9.+uTime*1.4)*.5+.5;
+        float edge=smoothstep(1.,.55,r), cr=exp(-r*5.);
+        vec3 col=mix(vec3(.02,.15,.4),vec3(.2,.9,1.),s*s2)+vec3(1.,.7,.25)*cr*1.4;
+        gl_FragColor=vec4(col,edge*(.18+.35*s)+cr*.6); }`});
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.7,64),discMat); disc.position.z=-.05; core.add(disc);
+
+  // Particles: slow motes in the cabin + warp dust streaming toward the pilot
+  const motes=particles({count:260,box:[10,4,8],color:["#4fe3ff","#ffb43c","#ffffff"],size:.07,seed:3,vel:[.03,.12,0],opacity:.7});
+  motes.position.set(0,.6,1); scene.add(motes);
+  const warp=particles({count:420,box:[18,10,24],color:["#4fe3ff","#ffffff","#ffb43c"],size:.1,seed:8,vel:[0,0,3.2],opacity:.65});
+  warp.position.set(0,-3.7,-10); scene.add(warp);
+
+  return {
+    scene, cam:{pos:V3(0,1.5,4.2),target:V3(0,1.95,-10)},
+    refresh:draw,
+    update(dt,t){
+      ring.rotation.z+=dt*.25; inner.rotation.z-=dt*.5; gyro.rotation.x+=dt*.35;
+      discMat.uniforms.uTime.value=t; vortexMat.uniforms.uTime.value=t;
+      blink.forEach(b=>b.m.emissiveIntensity=1.2+Math.sin(t*b.f+b.p)*1.1);
+      lever.rotation.x=Math.sin(t*.8)*.1; stick.rotation.z=Math.sin(t*.6)*.08; stick.rotation.x=Math.cos(t*.5)*.06;
+      motes.userData.tick(dt,t); warp.userData.tick(dt,t);
+      // seated camera: slight head-bob + pointer look-around (both off when motion is reduced); wider lens on portrait screens
+      const asp=innerWidth/innerHeight, fov=asp<1?Math.min(88,55+(1-asp)*48):55;
+      if(Math.abs(camera.fov-fov)>.05){ camera.fov=fov; camera.updateProjectionMatrix(); }
+      const sw=S.reduce?0:1, k=Math.min(1,dt*3); ptr.x+=(ptr.tx-ptr.x)*k; ptr.y+=(ptr.ty-ptr.y)*k;
+      camera.position.set(Math.sin(t*.35)*.05*sw+ptr.x*.2*sw,1.5+Math.sin(t*.5)*.03*sw+ptr.y*.08*sw,4.2);
+      camera.lookAt(ptr.x*2.2*sw,1.95+ptr.y*1*sw,-10);
+    }
+  };
+}
+
+/* ---------- WORMHOLE: shader tunnel + particle streaks ---------- */
+function buildWormhole(dir){
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+  const uni={uTime:{value:0},uOff:{value:0}};
+  const tunnel=new THREE.Mesh(new THREE.CylinderGeometry(4,4,300,64,1,true).rotateX(Math.PI/2),new THREE.ShaderMaterial({
+    uniforms:uni,side:THREE.BackSide,
+    vertexShader:"varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+    fragmentShader:`varying vec2 vUv; uniform float uTime, uOff;
+      float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+      float n(vec2 p,float per){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); i.x=mod(i.x,per);
+        return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y); }
+      void main(){
+        float z=vUv.y*300.-uOff, sw=vUv.x+z*.004+uTime*.05;      // swirl: angle drifts with depth
+        float t1=n(vec2(sw*6.,z*.05),6.), t2=n(vec2(sw*14.,z*.09)+t1*2.,14.);
+        float amb=pow(n(vec2(sw*48.,z*.04),48.),8.)*3.;
+        float st=pow(n(vec2(sw*64.,z*.06),64.),6.)*2.5;
+        float ringL=pow(max(0.,sin(z*.25)),24.)*.8;
+        vec3 col=vec3(.01,.02,.07)+vec3(.05,.55,.85)*pow(t2,2.)*1.4+vec3(1.,.62,.15)*amb+vec3(.6,.95,1.)*st+vec3(.2,.8,1.)*ringL;
+        gl_FragColor=vec4(col*smoothstep(0.,.42,vUv.y),1.); }`}));
+  scene.add(tunnel);
+  // Streaks (head bright, tail black + additive blending = fading trail)
+  const N=700, R=rng(99), P=new Float32Array(N*6), C=new Float32Array(N*6), A=new Float32Array(N), Rd=new Float32Array(N), Z=new Float32Array(N), F=new Float32Array(N);
+  for(let i=0;i<N;i++){
+    A[i]=R()*6.2832; Rd[i]=1.1+R()*2.6; Z[i]=-R()*150; F[i]=.6+R()*.9;
+    const c=R()>.6?[1,.7,.25]:[.4,.9,1]; C[i*6]=c[0]; C[i*6+1]=c[1]; C[i*6+2]=c[2];
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute("position",new THREE.BufferAttribute(P,3).setUsage(THREE.DynamicDrawUsage)); geo.setAttribute("color",new THREE.BufferAttribute(C,3));
+  const lines=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false}));
+  lines.frustumCulled=false; scene.add(lines);
+  let speed=30;
+  return {
+    scene, cam:{pos:V3(0,0,0),target:V3(0,0,-1)},
+    progress(t){
+      const env=Math.sin(Math.PI*t);                       // 0 → 1 → 0: slow, fast, slow
+      speed=20+170*Math.pow(env,1.2);
+      camera.fov=58+38*env; camera.updateProjectionMatrix();
+      const sh=S.reduce?0:.08*env;                         // camera shake (off when motion is reduced)
+      camera.position.set((Math.random()-.5)*sh,(Math.random()-.5)*sh,0);
+      camera.rotation.set(0,0,t*2.6*dir);
+    },
+    update(dt,t){
+      uni.uTime.value+=dt; uni.uOff.value+=dt*speed*dir;
+      const len=1+speed*.045;
+      for(let i=0;i<N;i++){
+        Z[i]+=speed*dt*dir*F[i];
+        if(dir>0 && Z[i]>1) Z[i]=-150-R()*20; else if(dir<0 && Z[i]<-150) Z[i]=-R()*4;
+        const x=Math.cos(A[i])*Rd[i], y=Math.sin(A[i])*Rd[i];
+        P[i*6]=x; P[i*6+1]=y; P[i*6+2]=Z[i]; P[i*6+3]=x; P[i*6+4]=y; P[i*6+5]=Z[i]-len*dir*F[i];
+      }
+      geo.attributes.position.needsUpdate=true;
+    }
+  };
+}
+
+/* ---------- MOON: grey cratered terrain, black sky, Earth on the horizon, harsh sun ---------- */
+function buildMoon(ev){
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+  scene.add(starfield(2500,900,11,1.7));
+  const T=makeTerrain({size:300,seg:200,seed:3,craters:44,amp:3.2,depth:.2,flatR:9,ripple:0,bump:2.2,tex:groundTex([158,158,158],1,.55)});
+  scene.add(T.mesh,scatterRocks(T.heightAt,{count:260,seed:5,color:0x8d8d8d}));
+  const sun=new THREE.DirectionalLight(0xffffff,3.4); sun.position.set(-20,12,12); sun.castShadow=true;   // low sun = long, harsh shadows
+  sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:90});
+  sun.shadow.bias=-.0004; sun.shadow.normalBias=.04; scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0x223355,0x050505,.18));                                        // faint earthshine
+  const earth=makeEarth(9); earth.position.set(-62,22,-120); scene.add(earth);
+  return {scene,cam:{pos:V3(6,3,8),target:V3(0,1,0),min:2.5,max:22},update(dt){ earth.userData.globe.rotation.y+=dt*.03; }};
+}
+
+/* ---------- MARS: rust terrain, butterscotch sky, dust, Phobos ---------- */
+function buildMars(ev){
+  const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0xe5b073,26,135);
+  const skyTex=canvasTex(8,256,(g,w,h)=>{
+    const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,"#a06c3f"); gr.addColorStop(.5,"#e5b073"); gr.addColorStop(1,"#e5b073");
+    g.fillStyle=gr; g.fillRect(0,0,w,h);
+  });
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(900,32,16),new THREE.MeshBasicMaterial({map:skyTex,side:THREE.BackSide,fog:false,depthWrite:false})));
+  const T=makeTerrain({size:300,seg:200,seed:8,craters:18,amp:2.6,depth:.12,ripple:.1,flatR:9,bump:1.6,tex:groundTex([176,86,50],2,.6)});
+  scene.add(T.mesh,scatterRocks(T.heightAt,{count:320,seed:9,color:0x8a4a2e}));
+  const sun=new THREE.DirectionalLight(0xffe0b8,2.8); sun.position.set(16,17,10); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:90});
+  sun.shadow.bias=-.0004; sun.shadow.normalBias=.04; scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xe9b57f,0x5c2f1c,.75));
+  // Phobos: lumpy little moon, slowly crossing the sky
+  const pg=new THREE.IcosahedronGeometry(1,3), pp=pg.attributes.position;
+  for(let i=0;i<pp.count;i++){ const x=pp.getX(i),y=pp.getY(i),z=pp.getZ(i), k=.82+vnoise(x*2.2+5,z*2.2+y*2)*.4; pp.setXYZ(i,x*k,y*k,z*k); }
+  pg.computeVertexNormals();
+  const phobos=new THREE.Mesh(pg,new THREE.MeshStandardMaterial({color:0x7d6f64,roughness:1,flatShading:true,fog:false}));
+  phobos.scale.set(6.2,4.8,5); scene.add(phobos);
+  const dust=particles({count:380,box:[44,9,44],color:["#f0c090","#d9a070"],size:.28,seed:4,vel:[1.1,.03,.35],opacity:.35,additive:false});
+  scene.add(dust);
+  return {scene,cam:{pos:V3(6,3,8),target:V3(0,1,0),min:2.5,max:22},
+    update(dt,t){ phobos.position.set(-95+Math.sin(t*.02)*40,30+Math.sin(t*.03)*5,-150); phobos.rotation.y=t*.05; dust.userData.tick(dt,t); }};
+}
+
+/* ---------- DEEP SPACE: starfield, distant Sun, drifting craft ---------- */
+function buildDeepSpace(ev){
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+  const stars=starfield(4500,900,21,1.8); scene.add(stars);
+  const sunPos=V3(260,70,-420);
+  const core=new THREE.Mesh(new THREE.SphereGeometry(5,16,12),new THREE.MeshBasicMaterial({color:0xffffff,fog:false})); core.position.copy(sunPos);
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex("#fff2cc"),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+  glow.scale.setScalar(110); glow.position.copy(sunPos); scene.add(core,glow);
+  const light=new THREE.DirectionalLight(0xfff4e0,3.2); light.position.copy(sunPos).normalize().multiplyScalar(30); scene.add(light);
+  scene.add(new THREE.HemisphereLight(0x223355,0x050510,.25));
+  const dust=particles({count:160,box:[40,20,40],color:["#ffffff","#9fc8ff"],size:.12,seed:6,vel:[-1.2,0,0],opacity:.7});
+  dust.position.y=-8; scene.add(dust);
+  return {scene,drift:true,cam:{pos:V3(7,2.5,9),target:V3(0,0,0),min:2,max:30,polar:Math.PI},
+    update(dt,t){ stars.rotation.y+=dt*.004; dust.userData.tick(dt,t); }};
+}
+
+/* ---------- UNKNOWN: fog-shrouded scene, faint silhouette ---------- */
+function buildUnknown(ev){
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a1222); scene.fog=new THREE.FogExp2(0x0a1222,.085);
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(60,48).rotateX(-Math.PI/2),
+    new THREE.MeshStandardMaterial({map:groundTex([70,84,110],2,.5,30),color:0x667799,roughness:1}));
+  ground.receiveShadow=true; scene.add(ground);
+  scene.add(new THREE.HemisphereLight(0x7aa0d8,0x0a1222,.9));
+  const dl=new THREE.DirectionalLight(0xbcd0ff,1.2); dl.position.set(6,10,4); scene.add(dl);
+  const R=rng(17), gt=glowTex("#9fb8dd"), fogs=[];
+  for(let i=0;i<16;i++){
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:gt,transparent:true,opacity:.13,depthWrite:false,fog:false}));
+    const a=R()*6.2832, r=4+R()*10; s.position.set(Math.cos(a)*r,.4+R()*2.6,Math.sin(a)*r); s.scale.setScalar(9+R()*5);
+    s.userData={a,r,sp:(R()-.5)*.05}; scene.add(s); fogs.push(s);
+  }
+  const floatY=ev.id==="snoopy"?2.4:0;
+  const beacon=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex("#ffb43c"),transparent:true,opacity:.15,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+  beacon.position.set(0,floatY+1.1,-2.4); beacon.scale.setScalar(3.2); scene.add(beacon);
+  return {scene,floatY,silhouette:true,cam:{pos:V3(6.5,2.6,8.5),target:V3(0,floatY+.8,0),min:3,max:13},
+    update(dt,t){
+      fogs.forEach(s=>{ const u=s.userData; u.a+=u.sp*dt; s.position.x=Math.cos(u.a)*u.r; s.position.z=Math.sin(u.a)*u.r; s.material.rotation+=dt*.02; });
+      beacon.material.opacity=.16+Math.sin(t*1.3)*.07;
+    }};
+}
+
+/* ---------- DESTINATION: scene + hardware model + holder ---------- */
+const SCENES={Moon:buildMoon,Mars:buildMars,"Deep space":buildDeepSpace,Unknown:buildUnknown};
+function modelFallback(){
+  const g=new THREE.Group(), m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xcccccc})); m.position.y=.5; g.add(m);
+  return {group:g,focus:{p:[0,.5,0],d:3}};
+}
+function buildDestination(ev){
+  const type=sceneOf(ev), env=SCENES[type](ev), model=(MODELS[ev.id]||modelFallback)();
+  const holder=new THREE.Group(); holder.position.set(0,env.floatY||0,0);
+  holder.userData.base=holder.position.clone();
+  holder.userData.from=type==="Deep space"?[-18,4,-10]:type==="Unknown"?[0,3,0]:[0,9,0];   // arrival offset (Chapter 2)
+  holder.add(model.group); env.scene.add(holder);
+  if(env.silhouette) silhouetteify(model.group);
+  else model.group.traverse(o=>{ if(o.isMesh){ o.castShadow=!o.material.transparent; o.receiveShadow=true; } });
+  return {scene:env.scene,cam:env.cam,model,holder,dispose:env.dispose,
+    update(dt,t){
+      env.update&&env.update(dt,t);
+      if(env.drift){ model.group.position.y=Math.sin(t*.6)*.15; model.group.rotation.z=Math.sin(t*.4)*.04; model.group.rotation.y=t*.12; }
+    }};
+}
+
+/* ===================== 9. MODEL BUILDERS ===================== */
+/* ---- shared model helpers ---- */
+const MODELS = {};   // id -> builder returning {group, focus:{p,d,view?}, update(dt,t), act(chapterIndex)}
+const std = (c,r=.55,m=.35,x={})=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m,...x});
+const glowMat = (c,k=2.6,o=1)=>new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(k),transparent:true,opacity:o,fog:false,depthWrite:false});
+const BOX = (w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const CYL = (a,b,h,s=16)=>new THREE.CylinderGeometry(a,b,h,s);
+const EARTH_DIR = ()=>V3(-62,22,-120).normalize();   // direction to Earth in the Moon scene
+/** Add a mesh to a parent at a position. */
+function put(p,geo,mat,x=0,y=0,z=0){ const o=new THREE.Mesh(geo,mat); o.position.set(x,y,z); p.add(o); return o; }
+/** Shared hardware materials (each model gets its own set, so disposal is clean). */
+function pal(){
+  const solarTex=canvasTex(128,128,(g,w,h)=>{
+    g.fillStyle="#14275f"; g.fillRect(0,0,w,h); g.strokeStyle="#6b8fe0"; g.lineWidth=2;
+    for(let i=0;i<=8;i++){ g.beginPath(); g.moveTo(i*w/8,0); g.lineTo(i*w/8,h); g.moveTo(0,i*h/8); g.lineTo(w,i*h/8); g.stroke(); }
+  });
+  return {
+    white:std(0xe9e9ef,.6,.15), grey:std(0xa3a9b4,.5,.55), dark:std(0x2b2f3a,.7,.35), rubber:std(0x1a1c22,.9,.1),
+    gold:std(0xd9a441,.35,.45,{emissive:0x5a3a08,emissiveIntensity:.6}), red:std(0xc9452e,.6,.2), cream:std(0xe9dcb8,.9,0),
+    glass:std(0xbcd4ff,.12,.9,{emissive:0x223a66,emissiveIntensity:.5}),
+    dishM:std(0xdfe3ea,.4,.5,{side:THREE.DoubleSide}), solar:std(0xffffff,.35,.6,{map:solarTex,side:THREE.DoubleSide})
+  };
+}
+/** A value that eases between 0 and 1 (drives chapter animations). Jumps when motion is reduced. */
+function knob(){
+  const o={v:0}; let tw=null;
+  o.to=(target,dur=1500)=>{ if(tw) tw.cancel(); const a=o.v;
+    tw=tween({dur:S.reduce?1:dur,ease:Ease.inOutCubic,update:(_,e)=>{ o.v=a+(target-a)*e; }}); return tw; };
+  return o;
+}
+/** Cylinder strut between two points. */
+function strut(p,a,b,r,m){
+  const A=V3(...a), D=V3(...b).sub(A), L=D.length(), o=new THREE.Mesh(CYL(r,r,L,8),m);
+  o.position.copy(A).addScaledVector(D,.5); o.quaternion.setFromUnitVectors(V3(0,1,0),D.normalize()); p.add(o); return o;
+}
+/** Parabolic-ish dish (concave side up the group's +Y) with a feed horn. */
+function dish(p,r,m,x,y,z,rx=0,rz=0){
+  const gr=new THREE.Group(); gr.position.set(x,y,z); gr.rotation.set(rx,0,rz);
+  const th=.75, R=r/Math.sin(th), g=new THREE.SphereGeometry(R,32,8,0,Math.PI*2,0,th); g.translate(0,-R,0); g.rotateX(Math.PI);
+  gr.add(new THREE.Mesh(g,m));
+  const f=r*.5; put(gr,CYL(.02*r+.01,.02*r+.01,f,6),m,0,f/2,0); put(gr,new THREE.SphereGeometry(.05*r+.02,8,6),m,0,f,0);
+  p.add(gr); return gr;
+}
+/** Thin flat panel (solar array etc.). */
+function plate(p,w,h,m,x,y,z,rx=0,ry=0,rz=0,t=.04){ const o=put(p,BOX(w,t,h),m,x,y,z); o.rotation.set(rx,ry,rz); return o; }
+/** Wheel with cleats; axle along Z, spin with rotation.z. */
+function wheel(p,r,w,P,x,y,z){
+  const g=new THREE.Group(); g.position.set(x,y,z);
+  const t=CYL(r,r,w,18); t.rotateX(Math.PI/2); g.add(new THREE.Mesh(t,P.rubber));
+  for(let i=0;i<3;i++){ const s=put(g,BOX(r*1.9,r*.14,w*1.1),P.grey); s.rotation.z=i*Math.PI/3; }
+  p.add(g); return g;
+}
+/** Two-segment robotic arm reaching along +X; rotate pivot/elbow around Z (negative = down). */
+function arm(p,x,y,z,L1,L2,m,r=.05){
+  const pivot=new THREE.Group(); pivot.position.set(x,y,z); p.add(pivot);
+  put(pivot,BOX(L1,r*2,r*2),m,L1/2); put(pivot,new THREE.SphereGeometry(r*1.5,10,8),m);
+  const elbow=new THREE.Group(); elbow.position.x=L1; pivot.add(elbow);
+  put(elbow,BOX(L2,r*1.7,r*1.7),m,L2/2); put(elbow,new THREE.SphereGeometry(r*1.4,10,8),m);
+  const tip=new THREE.Group(); tip.position.x=L2; elbow.add(tip);
+  return {pivot,elbow,tip};
+}
+/** Small open scoop on an arm tip. */
+function scoop(tip,m){ const g=new THREE.CylinderGeometry(.13,.13,.26,12,1,true,0,Math.PI); g.rotateX(Math.PI/2); g.rotateZ(-Math.PI/2); put(tip,g,m,.08,0,0); }
+/** Soft additive glow sprite (starts invisible; models fade it in). */
+function glowSprite(p,color,s,x,y,z){
+  const o=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(color),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+  o.scale.setScalar(s); o.position.set(x,y,z); p.add(o); return o;
+}
+/** Drives a model around a circle; spins its wheels by the distance travelled. */
+function driver(g,wheels,fx,R,rw){
+  let prev=0;
+  return ()=>{ const a=fx.v*Math.PI*1.1, s=a*R; g.position.set(Math.sin(a)*R,0,R*(1-Math.cos(a))); g.rotation.y=-a;
+    const d=(s-prev)/rw; prev=s; wheels.forEach(w=>w.rotation.z-=d); };
+}
+/** Arm pose for scooping: v=0 stowed, v=1 scoop in the ground. */
+const scoopPose=(A,v,t)=>{ A.pivot.rotation.z=-.15-.55*v; A.elbow.rotation.z=.3-.8*v+Math.sin(t*2.4)*.1*v; };
+
+/* ---- 1. Surveyor 3 ---- */
+MODELS.surveyor3=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), top=[], foot=[];
+  for(let i=0;i<3;i++){ const a=Math.PI/2+i*2.0944; top.push([Math.cos(a)*.45,1.25,Math.sin(a)*.45]); foot.push([Math.cos(a)*1.6,.1,Math.sin(a)*1.6]); }
+  for(let i=0;i<3;i++){
+    strut(g,foot[i],top[i],.05,P.grey); strut(g,top[i],top[(i+1)%3],.04,P.grey);
+    put(g,CYL(.32,.36,.1,16),P.grey,foot[i][0],.05,foot[i][2]);                       // footpad
+  }
+  for(const i of [1,2]){ const x=top[i][0]*1.5, z=top[i][2]*1.5; put(g,BOX(.5,.42,.4),i===1?P.gold:P.white,x,1.0,z).rotation.y=-Math.atan2(z,x); } // electronics
+  put(g,CYL(.07,.07,1.3,10),P.grey,0,1.9,0);                                           // mast
+  plate(g,1.1,.8,P.solar,0,2.6,0,0,0,.1);                                              // solar panel
+  dish(g,.28,P.dishM,-.1,2.7,.6,.25,0);                                                // antenna
+  put(g,CYL(.1,.1,.32,12),P.dark,.14,2.1,0).rotation.z=.9;                             // TV camera
+  const A=arm(g,.45,1.1,0,.9,.7,P.grey,.04); scoop(A.tip,P.dishM);                     // soil scoop arm
+  return {group:g,focus:{p:[.6,.7,0],d:3.6},
+    update(dt,t){ scoopPose(A,fx.v,t); g.rotation.y=Math.sin(t*.3)*.08; },
+    act(i){ fx.to(i===2?1:0,1800); }};
+};
+
+/* ---- 2. Apollo 10 LM "Snoopy" (shown as a faint silhouette) ---- */
+MODELS.snoopy=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob();
+  put(g,CYL(1.15,1.3,.8,8),P.gold,0,1.2,0);                                            // descent stage
+  for(let i=0;i<4;i++){ const a=Math.PI/4+i*Math.PI/2, c=Math.cos(a), s=Math.sin(a);
+    strut(g,[c*1.1,1.05,s*1.1],[c*2.3,.12,s*2.3],.05,P.grey); strut(g,[c*.7,1.0,s*.7],[c*1.7,.5,s*1.7],.03,P.grey);
+    put(g,CYL(.32,.36,.06,14),P.grey,c*2.3,.06,s*2.3); }
+  const asc=new THREE.Group(); asc.position.y=1.6; g.add(asc);                         // ascent stage
+  put(asc,BOX(1.6,1.0,1.4),P.grey,0,.5,0); put(asc,CYL(.3,.7,.5,8),P.white,0,1.25,0);
+  put(asc,BOX(.4,.26,.05),P.dark,.35,.7,.72); put(asc,BOX(.4,.26,.05),P.dark,-.35,.7,.72);
+  dish(asc,.32,P.dishM,-.5,1.45,-.2,.3,.4); strut(asc,[.6,1,0],[.6,1.9,0],.015,P.grey);
+  for(const [x,z] of [[.95,.7],[-.95,.7],[.95,-.7],[-.95,-.7]]) put(asc,BOX(.14,.14,.14),P.dark,x,.3,z);
+  return {group:g,focus:{p:[0,1.8,0],d:5},
+    update(dt,t){ asc.position.y=1.6+fx.v*3.2; asc.rotation.set(fx.v*.4*Math.sin(t*.5),fx.v*t*.4,fx.v*.3); g.rotation.y=Math.sin(t*.25)*.4; },
+    act(i){ fx.to(i===2?1:0,2200); }};                                                 // ch3: ascent stage drifts away
+};
+
+/* ---- 3. Apollo 11 Laser Retroreflector (ch3: laser beam hits the panel and bounces back) ---- */
+MODELS.apollo11=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), E=EARTH_DIR();
+  const nrm=E.clone().multiplyScalar(.65).add(V3(0,.35,0)).normalize();
+  const pan=new THREE.Group(); pan.position.set(0,.62,0); pan.quaternion.setFromUnitVectors(V3(0,1,0),nrm); g.add(pan);
+  put(pan,BOX(1.6,.07,1.6),P.grey);
+  const cubes=new THREE.InstancedMesh(CYL(.06,.06,.05,10),P.glass,100), d=new THREE.Object3D();   // 10x10 corner cubes
+  for(let i=0;i<10;i++) for(let j=0;j<10;j++){ d.position.set((i-4.5)*.15,.055,(j-4.5)*.15); d.updateMatrix(); cubes.setMatrixAt(i*10+j,d.matrix); }
+  pan.add(cubes);
+  for(const [x,z] of [[1.1,.9],[-1.1,.9],[0,-1.2]]){ strut(g,[x,.04,z],[x*.25,.55,z*.25],.04,P.grey); put(g,CYL(.16,.18,.04,10),P.grey,x,.02,z); }
+  const L=70, bg=CYL(.03,.03,L,6); bg.translate(0,L/2,0);
+  const bm=glowMat(0x66ff99,2.2,0), beam=put(g,bg,bm,pan.position.x,pan.position.y,pan.position.z); beam.quaternion.setFromUnitVectors(V3(0,1,0),E);
+  const pIn=put(g,new THREE.SphereGeometry(.14,10,8),glowMat(0x66ff99,3)), pOut=put(g,new THREE.SphereGeometry(.12,10,8),glowMat(0xffb43c,3));
+  pIn.visible=pOut.visible=beam.visible=false;
+  const flash=glowSprite(g,"#ffffff",1.8,nrm.x*.1,.62+nrm.y*.1,nrm.z*.1);
+  return {group:g,focus:{p:[0,.6,0],d:4.6,view:[-2.6,1.4,-4]},
+    update(dt,t){
+      const v=fx.v, ph=(t*.55)%1, out=ph>=.5, k=out?2*ph-1:1-2*ph;                // pulse goes in (green), comes back (amber)
+      beam.visible=v>.01; bm.opacity=.5*v; pIn.visible=v>.01&&!out; pOut.visible=v>.01&&out;
+      (out?pOut:pIn).position.copy(pan.position).addScaledVector(E,L*.9*k);
+      flash.material.opacity=v*Math.max(0,1-Math.abs(ph-.5)*7);
+      P.glass.emissiveIntensity=.5+.25*Math.sin(t*2);
+    },
+    act(i){ fx.to(i===2?1:0,900); }};
+};
+
+/* ---- 4. Apollo 15 Lunar Roving Vehicle (ch3: wheels roll) ---- */
+MODELS.lrv=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), body=new THREE.Group(), wheels=[]; g.add(body);
+  put(body,BOX(2.3,.14,1.1),P.grey,0,.55,0);
+  put(body,BOX(.7,.32,.95),P.white,.85,.78,0); put(body,BOX(.7,.32,.95),P.white,-.85,.78,0);
+  for(const z of [-.28,.28]){ put(body,BOX(.36,.06,.36),P.white,-.1,.68,z); put(body,BOX(.06,.45,.36),P.white,-.28,.9,z); }
+  strut(body,[.45,.6,0],[.45,1.0,0],.025,P.dark); put(body,BOX(.04,.04,.4),P.dark,.45,1.0,0);   // control T-handle
+  strut(body,[-.85,.95,0],[-.85,1.55,0],.03,P.grey); const hga=dish(body,.5,P.dishM,-.85,1.55,0,0,-.45);   // high-gain mesh dish
+  strut(body,[.9,.9,.3],[.9,1.35,.3],.02,P.grey); put(body,BOX(.28,.2,.2),P.white,.9,1.45,.3);          // TV camera
+  for(const x of [-.85,.85]) for(const z of [-.68,.68]){ wheels.push(wheel(body,.36,.2,P,x,.38,z)); strut(body,[x,.55,z*.7],[x,.38,z],.03,P.dark); }
+  const drive=driver(g,wheels,fx,2.4,.36);
+  return {group:g,focus:{p:[0,.7,0],d:4.2},
+    update(dt,t){ drive(); hga.rotation.y=Math.sin(t*.5)*.5; },
+    act(i){ fx.to(i===2?1:0,3200); }};
+};
+
+/* ---- 5. Pioneer 10 (ch3: the plaque glows) ---- */
+MODELS.pioneer10=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob();
+  put(g,CYL(.6,.6,.4,6),P.grey,0,.2,0); dish(g,1.9,P.dishM,0,.45,0);                   // hexagonal bus + big dish
+  for(let i=0;i<3;i++){ const a=i*2.0944+.5; strut(g,[Math.cos(a)*1.9,1.21,Math.sin(a)*1.9],[0,1.45,0],.02,P.grey); }
+  for(const a of [0,2.0944]){ const c=Math.cos(a), s=Math.sin(a);                      // two RTG booms
+    strut(g,[c*.6,.2,s*.6],[c*3,.2,s*3],.035,P.grey);
+    for(const d of [1.7,2.4]) put(g,CYL(.14,.14,.55,10),P.dark,c*d,.2,s*d).quaternion.setFromUnitVectors(V3(0,1,0),V3(c,0,s)); }
+  const ma=4.1888; strut(g,[Math.cos(ma)*.6,.2,Math.sin(ma)*.6],[Math.cos(ma)*3.8,.25,Math.sin(ma)*3.8],.02,P.grey);   // magnetometer boom
+  put(g,BOX(.2,.2,.2),P.white,Math.cos(ma)*3.8,.25,Math.sin(ma)*3.8);
+  put(g,BOX(.55,.32,.03),P.gold,0,.18,.62); const glow=glowSprite(g,"#ffd27a",1.7,0,.18,.7);   // plaque
+  return {group:g,focus:{p:[0,.4,0],d:5.5},
+    update(dt,t){ glow.material.opacity=fx.v*(.55+.3*Math.sin(t*3)); },
+    act(i){ fx.to(i===2?1:0,900); }};
+};
+
+/* ---- 6. Apollo 16 Far Ultraviolet Camera (ch3: it points at the sky and glows) ---- */
+MODELS.farUV=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), E=EARTH_DIR(), cam=new THREE.Group();
+  cam.position.set(0,1.4,0); g.add(cam);
+  put(cam,CYL(.28,.28,1.4,20),P.white); put(cam,CYL(.3,.3,.14,20),P.gold,0,-.4,0);
+  put(cam,BOX(.6,.5,.45),P.dark,0,-.78,0); put(cam,CYL(.25,.25,.04,20),P.glass,0,.72,0);   // film cassette + lens
+  for(let i=0;i<3;i++){ const a=i*2.0944+.4; strut(g,[0,1.1,0],[Math.cos(a)*1.25,.05,Math.sin(a)*1.25],.04,P.grey); put(g,CYL(.2,.22,.04,12),P.grey,Math.cos(a)*1.25,.02,Math.sin(a)*1.25); }
+  strut(g,[0,1.1,0],[0,1.4,0],.06,P.grey);
+  const glow=glowSprite(cam,"#b49cff",2,0,.95,0), q0=new THREE.Quaternion().setFromUnitVectors(V3(0,1,0),E), q=new THREE.Quaternion(), e=new THREE.Euler();
+  return {group:g,focus:{p:[0,1.3,0],d:4.4},
+    update(dt,t){ e.set(Math.sin(t*.5)*.04+fx.v*Math.sin(t*1.1)*.3,0,fx.v*Math.cos(t*.8)*.25); cam.quaternion.copy(q0).multiply(q.setFromEuler(e));
+      glow.material.opacity=fx.v*(.5+.35*Math.sin(t*3)); },
+    act(i){ fx.to(i===2?1:0,1200); }};
+};
+
+/* ---- 7. Viking 1 Lander (ch3: sampler arm scoops soil) ---- */
+MODELS.viking1=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob();
+  put(g,CYL(.9,.9,.5,6),P.white,0,.95,0);
+  for(let i=0;i<3;i++){ const a=Math.PI/6+i*2.0944, c=Math.cos(a), s=Math.sin(a);
+    strut(g,[c*.8,.85,s*.8],[c*2.1,.1,s*2.1],.05,P.grey); strut(g,[c*.4,.7,s*.4],[c*1.6,.3,s*1.6],.03,P.grey); put(g,CYL(.3,.34,.06,14),P.grey,c*2.1,.03,s*2.1); }
+  for(const a of [2.1,4.2]) put(g,CYL(.38,.38,.28,14),P.dark,Math.cos(a)*1.15,.95,Math.sin(a)*1.15);   // RTG housings
+  strut(g,[-.6,1.2,-.3],[-.6,1.65,-.3],.03,P.grey); dish(g,.55,P.dishM,-.6,1.65,-.3,-.5,0);          // high-gain dish
+  for(const [x,z] of [[.5,.45],[.3,-.45]]){ strut(g,[x,1.2,z],[x,1.6,z],.03,P.grey); put(g,BOX(.28,.2,.2),P.dark,x,1.7,z); }   // cameras
+  const A=arm(g,.85,1.1,-.1,.9,.7,P.grey,.04); scoop(A.tip,P.dishM);
+  return {group:g,focus:{p:[.8,.8,0],d:4.6},
+    update(dt,t){ scoopPose(A,fx.v,t); },
+    act(i){ fx.to(i===2?1:0,1800); }};
+};
+
+/* ---- 8. Voyager 1 (ch3: the Golden Record glows and spins) ---- */
+MODELS.voyager1=function(){
+  const P=pal(), g=new THREE.Group(), b=new THREE.Group(), fx=knob();
+  b.rotation.x=.7; g.add(b);                                                           // tilt so the dish faces the viewer
+  put(b,CYL(.7,.7,.45,10),P.gold,0,0,0); dish(b,1.8,P.dishM,0,.22,0);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+.4; strut(b,[Math.cos(a)*1.8,.93,Math.sin(a)*1.8],[0,1.12,0],.02,P.grey); }
+  strut(b,[.5,-.1,0],[3.1,-.1,0],.035,P.grey);                                          // RTG boom with 3 generators
+  for(const x of [1.4,2.0,2.6]) put(b,CYL(.11,.11,.5,10),P.dark,x,-.1,0).rotation.z=Math.PI/2;
+  const sa=2.4; strut(b,[Math.cos(sa)*.5,-.15,Math.sin(sa)*.5],[Math.cos(sa)*2.6,-.15,Math.sin(sa)*2.6],.03,P.grey);   // science boom
+  put(b,BOX(.5,.3,.4),P.white,Math.cos(sa)*2.7,-.15,Math.sin(sa)*2.7); put(b,CYL(.12,.12,.3,10),P.dark,Math.cos(sa)*2.9,-.05,Math.sin(sa)*2.9);
+  const ma=4.4; strut(b,[Math.cos(ma)*.5,-.1,Math.sin(ma)*.5],[Math.cos(ma)*4.4,-.1,Math.sin(ma)*4.4],.015,P.grey);   // magnetometer boom
+  put(b,BOX(.12,.12,.12),P.white,Math.cos(ma)*4.4,-.1,Math.sin(ma)*4.4);
+  strut(b,[0,-.25,.2],[-1.2,-2.0,.9],.012,P.grey); strut(b,[0,-.25,.2],[1.2,-2.0,.9],.012,P.grey);   // long wire antennas
+  const rec=new THREE.Group(); rec.position.set(0,-.1,.74); rec.rotation.x=Math.PI/2; b.add(rec);   // Golden Record
+  put(rec,CYL(.34,.34,.02,28),P.gold); put(rec,CYL(.13,.13,.03,20),P.dark);
+  const glow=glowSprite(b,"#ffd27a",1.8,0,-.1,.8);
+  return {group:g,focus:{p:[0,0,0],d:7.5},
+    update(dt,t){ rec.rotation.y+=dt*fx.v*3; glow.material.opacity=fx.v*(.5+.3*Math.sin(t*3)); },
+    act(i){ fx.to(i===2?1:0,900); }};
+};
+
+/* ---- 9. Pathfinder lander + Sojourner rover (ch3: the rover rolls off to study rocks) ---- */
+MODELS.sojourner=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), wheels=[];
+  put(g,CYL(1,1,.45,3),P.white,0,.4,0);                                                 // triangular lander body
+  for(let i=0;i<3;i++){ const a=Math.PI/6+i*2.0944, h=new THREE.Group(), pt=new THREE.Group();   // three open petals
+    h.position.set(Math.cos(a)*.5,.4,Math.sin(a)*.5); h.rotation.y=-a; pt.rotation.z=-.33; h.add(pt); plate(pt,1.2,1.0,P.solar,.6,0,0); g.add(h); }
+  strut(g,[0,.625,0],[0,1.5,0],.03,P.grey); put(g,BOX(.3,.18,.14),P.dark,0,1.58,0);     // camera mast
+  strut(g,[.35,.6,-.2],[.35,1.15,-.2],.02,P.grey); dish(g,.2,P.dishM,.35,1.15,-.2,.3,0);
+  const ro=new THREE.Group(), rv=new THREE.Group(); ro.position.set(1.5,0,-1.2); ro.add(rv); g.add(ro);   // Sojourner (small)
+  put(rv,BOX(.7,.2,.45),P.gold,0,.3,0); plate(rv,.7,.45,P.solar,0,.42,0,0,0,0,.03);
+  strut(rv,[.25,.42,.1],[.25,.75,.1],.015,P.grey); put(rv,BOX(.1,.08,.1),P.dark,.36,.3,0);
+  for(const x of [-.28,0,.28]) for(const z of [-.3,.3]){ wheels.push(wheel(rv,.1,.08,P,x,.1,z)); strut(rv,[x*.6,.25,z*.8],[x,.1,z],.015,P.dark); }
+  const drive=driver(rv,wheels,fx,1.3,.1);
+  return {group:g,focus:{p:[1.6,.4,0],d:5.8},
+    update(){ drive(); },
+    act(i){ fx.to(i===2?1:0,3200); }};
+};
+
+/* ---- 10. Mars Polar Lander (shown as a faint silhouette; ch3: panels open, arm reaches down) ---- */
+MODELS.mpl=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob();
+  put(g,CYL(.9,.9,.3,6),P.white,0,.95,0);
+  for(let i=0;i<3;i++){ const a=i*2.0944+.5, c=Math.cos(a), s=Math.sin(a);
+    strut(g,[c*.8,.85,s*.8],[c*2,.1,s*2],.05,P.grey); strut(g,[c*.4,.8,s*.4],[c*1.5,.3,s*1.5],.03,P.grey); put(g,CYL(.3,.34,.06,14),P.grey,c*2,.03,s*2); }
+  const pans=[1,-1].map(sg=>{ const h=new THREE.Group(), n=new THREE.Group(); h.position.set(sg*.9,1.1,0); if(sg<0) h.rotation.y=Math.PI;
+    h.add(n); plate(n,1.4,.9,P.solar,.7,0,0); g.add(h); return n; });
+  strut(g,[-.3,1.1,-.4],[-.3,1.7,-.4],.03,P.grey); dish(g,.4,P.dishM,-.3,1.7,-.4,-.4,0);
+  const A=arm(g,.85,1.1,.1,.8,.6,P.grey,.04); scoop(A.tip,P.dishM);
+  return {group:g,focus:{p:[.6,.9,0],d:5},
+    update(dt,t){ pans.forEach(n=>n.rotation.z=1.3*(1-fx.v)); scoopPose(A,fx.v,t); },
+    act(i){ fx.to(i===2?1:0,1800); }};
+};
+
+/* ---- 11. Opportunity Rover (ch3: wheels roll across the plain) ---- */
+MODELS.opportunity=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), body=new THREE.Group(), wheels=[]; g.add(body);
+  put(body,BOX(1.5,.35,1),P.gold,0,.62,0); put(body,BOX(1.7,.05,1.15),P.grey,0,.82,0);   // warm box + deck
+  plate(body,1.55,1,P.solar,0,.87,0,0,0,0,.03);                                           // solar deck
+  strut(body,[-.55,.85,.3],[-.55,1.75,.3],.035,P.grey); put(body,BOX(.34,.16,.2),P.dark,-.55,1.82,.3);   // camera mast
+  put(body,CYL(.045,.045,.06,8),P.glass,-.4,1.82,.41); put(body,CYL(.045,.045,.06,8),P.glass,-.7,1.82,.41);
+  strut(body,[.4,.85,-.3],[.4,1.2,-.3],.03,P.grey); put(body,CYL(.3,.3,.03,24),P.dishM,.4,1.25,-.3).rotation.z=.4;   // high-gain antenna
+  const A=arm(body,.8,.62,.2,.5,.4,P.grey,.04); put(A.tip,CYL(.1,.1,.12,12),P.dark,.04,0,0);
+  for(const z of [-.65,.65]) for(const x of [-.7,0,.7]){ wheels.push(wheel(body,.26,.18,P,x,.28,z)); strut(body,[x*.6,.6,z*.75],[x,.28,z],.03,P.dark); }
+  const drive=driver(g,wheels,fx,2.6,.26);
+  return {group:g,focus:{p:[0,.7,1.2],d:5.6},
+    update(dt,t){ drive(); A.pivot.rotation.z=-.35+Math.sin(t*.7)*.04; A.elbow.rotation.z=.5; },
+    act(i){ fx.to(i===2?1:0,3200); }};
+};
+
+/* ---- 12. Phoenix Lander (ch3: the scoop digs and white ice appears) ---- */
+MODELS.phoenix=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob();
+  put(g,CYL(.95,.95,.3,6),P.dark,0,1,0); put(g,BOX(.7,.35,.7),P.white,-.1,1.25,0);
+  for(let i=0;i<3;i++){ const a=i*2.0944+Math.PI/2, c=Math.cos(a), s=Math.sin(a);
+    strut(g,[c*.8,.9,s*.8],[c*2.1,.1,s*2.1],.05,P.grey); strut(g,[c*.4,.8,s*.4],[c*1.6,.3,s*1.6],.03,P.grey); put(g,CYL(.3,.34,.06,14),P.grey,c*2.1,.03,s*2.1); }
+  for(const sg of [1,-1]){ put(g,CYL(1.1,1.1,.04,40),P.solar,0,1.1,sg*1.95).rotation.x=sg*.15; strut(g,[0,1.05,sg*.8],[0,1.1,sg*1],.04,P.grey); }   // round solar fans
+  strut(g,[-.55,1.4,.35],[-.55,2.3,.35],.03,P.grey); put(g,BOX(.12,.12,.12),P.white,-.55,2.35,.35);   // weather mast
+  strut(g,[.2,1.4,-.35],[.2,1.9,-.35],.03,P.grey); put(g,BOX(.3,.16,.16),P.dark,.2,1.97,-.35);       // camera
+  const A=arm(g,.85,1.15,.3,1.2,1,P.grey,.045); scoop(A.tip,P.dishM);
+  const ix=.85+1.2*Math.cos(.45)+Math.cos(.7), iM=new THREE.MeshStandardMaterial({color:0xe8f6ff,emissive:0x6aa8d8,emissiveIntensity:.5,roughness:.3,transparent:true,opacity:0});
+  const ice=put(g,new THREE.SphereGeometry(.28,14,8),iM,ix,.02,.3); ice.scale.y=.25;     // water ice under the scoop
+  return {group:g,focus:{p:[1.6,.6,.3],d:5.2},
+    update(dt,t){ const v=fx.v; A.pivot.rotation.z=-.1-.35*v; A.elbow.rotation.z=.25-.5*v+Math.sin(t*2.4)*.06*v; iM.opacity=Math.max(0,v*2-1); },
+    act(i){ fx.to(i===2?1:0,2200); }};
+};
+
+/* ---- 13. InSight Lander (ch3: marsquake rings ripple from the seismometer; ch4: dust covers the panels) ---- */
+MODELS.insight=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), dust=knob(), rings=[];
+  put(g,CYL(.8,.8,.25,6),P.dark,0,.95,0); put(g,CYL(.55,.55,.2,6),P.gold,0,1.15,0);
+  for(let i=0;i<3;i++){ const a=i*2.0944+Math.PI/2, c=Math.cos(a), s=Math.sin(a);
+    strut(g,[c*.7,.85,s*.7],[c*1.9,.1,s*1.9],.05,P.grey); strut(g,[c*.4,.8,s*.4],[c*1.4,.3,s*1.4],.03,P.grey); put(g,CYL(.28,.32,.06,14),P.grey,c*1.9,.03,s*1.9); }
+  for(const sg of [1,-1]){ put(g,CYL(1.1,1.1,.04,40),P.solar,0,1.1,sg*1.95).rotation.x=sg*.2; strut(g,[0,1.05,sg*.7],[0,1.1,sg*1],.04,P.grey); }   // round solar panels
+  strut(g,[-.4,1.2,.3],[-.4,2,.3],.02,P.grey); put(g,CYL(.07,.07,.5,10),P.dark,-.4,1.85,.3);    // antenna
+  dish(g,.18,P.dishM,-.3,1.3,-.45,.3,0);
+  const sx=2.4, sz=.5;                                                                    // seismometer dome on the ground
+  put(g,new THREE.SphereGeometry(.7,24,12,0,Math.PI*2,0,Math.PI/2),P.dishM,sx,0,sz);
+  strut(g,[.8,1,.3],[sx-.6,.3,sz],.02,P.dark); put(g,BOX(.4,.5,.4),P.white,2.1,.25,-1);
+  const A=arm(g,.55,1.1,-.1,.8,.8,P.grey,.04); put(A.tip,BOX(.18,.12,.2),P.dark,.05,0,0);
+  const rg=new THREE.TorusGeometry(1,.025,6,48); rg.rotateX(Math.PI/2);
+  for(let k=0;k<3;k++){ const r=put(g,rg,glowMat(0x4fe3ff,2.4,0),sx,.04,sz); rings.push(r); }
+  return {group:g,focus:{p:[1.5,.6,.4],d:5.4},
+    update(dt,t){
+      A.pivot.rotation.z=-.5; A.elbow.rotation.z=-.2+Math.sin(t*.6)*.03;
+      rings.forEach((r,k)=>{ const ph=(t*.5+k/3)%1; r.scale.set(.7+ph*2.6,1,.7+ph*2.6); r.material.opacity=fx.v*(1-ph)*.85; });
+      P.solar.emissive.setRGB(.5*dust.v,.33*dust.v,.18*dust.v);                           // dust tints the panels
+    },
+    act(i){ fx.to(i===2?1:0,1000); dust.to(i===3?1:0,2400); }};
+};
+
+/* ---- 14. Ingenuity Helicopter (ch3: rotors spin and it lifts off; ch4: one blade tip is bent) ---- */
+MODELS.ingenuity=function(){
+  const P=pal(), g=new THREE.Group(), fx=knob(), dm=knob(), rotors=[], tips=[], blurM=glowMat(0xdddddd,1,0);
+  put(g,BOX(.5,.4,.5),P.gold,0,.9,0); put(g,BOX(.18,.12,.02),P.cream,0,.92,.26);          // body + fabric swatch
+  for(const sx of [-1,1]) for(const sz of [-1,1]){ strut(g,[sx*.2,.72,sz*.2],[sx*.75,.04,sz*.75],.025,P.dark); put(g,CYL(.07,.08,.03,10),P.dark,sx*.75,.02,sz*.75); }
+  strut(g,[0,1.1,0],[0,1.84,0],.03,P.dark);
+  const rotor=(y,dir)=>{ const r=new THREE.Group(); r.position.y=y; g.add(r); put(r,CYL(.07,.07,.08,10),P.dark);
+    for(const s of [1,-1]){ const pv=new THREE.Group(), tip=new THREE.Group(); pv.rotation.y=s>0?0:Math.PI; r.add(pv);
+      put(pv,BOX(.6,.015,.1),P.dark,.3,0,0); tip.position.x=.6; pv.add(tip); put(tip,BOX(.3,.015,.09),P.dark,.15,0,0); tips.push(tip); }
+    rotors.push({r,dir}); };
+  rotor(1.45,1); rotor(1.62,-1);                                                          // two counter-rotating rotors
+  put(g,CYL(.9,.9,.01,40),blurM,0,1.54,0);                                                // motion-blur disc
+  plate(g,.9,.5,P.solar,0,1.86,0,0,0,0,.03);
+  return {group:g,focus:{p:[0,1.5,0],d:6},
+    update(dt,t){
+      const v=fx.v; g.position.y=v*2.4+(v>.02?Math.sin(t*3)*.05*v:0); g.rotation.z=v*Math.sin(t*2)*.04;
+      rotors.forEach(o=>o.r.rotation.y+=o.dir*v*45*dt); blurM.opacity=.22*v;
+      tips[2].rotation.z=-.5*dm.v;                                                        // bent blade tip
+    },
+    act(i){ fx.to(i===2?1:0,2400); dm.to(i===3?1:0,1500); }};
+};
+
+/* ===================== 10. BOOT ===================== */
+(async function boot(){
+  bindUI();
+  setView("hub");
+  try{
+    await initEngine();
+    Stage.ready = true;
+  }catch(err){
+    // No WebGL (or CDN blocked): fall back to the accessible text-only experience
+    console.warn("3D unavailable, using Text-only mode:", err.message);
+    el.btnText.disabled = true;
+    setTextMode(true);
+    el.nearest.textContent = "3D graphics are unavailable, so Text-only mode is on. Pick any event below.";
+  }
+})();
+</script>
+</body>
+</html>
