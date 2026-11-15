@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CHRONO-PROBE — A Time-Travel Journey to NASA's Left-Behind Hardware</title>
+<title>NASA Space Time Machine — A Time-Travel Journey to NASA's Left-Behind Hardware</title>
 <meta name="description" content="Travel back in time to visit 14 pieces of space hardware left behind by NASA missions.">
 <!-- Three.js is loaded by dynamic import() in the script below, resolved via this import map. -->
 <script type="importmap">
@@ -72,10 +72,10 @@ body.reduce *{animation:none!important}
 .hubhead{max-width:560px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:1.1rem 1.2rem;
   backdrop-filter:blur(10px);box-shadow:0 0 30px rgba(79,227,255,.12)}
-.brand{font-size:clamp(1.6rem,4.5vw,2.4rem);letter-spacing:.14em;color:var(--cyan);text-shadow:0 0 18px rgba(79,227,255,.7)}
+.brand{font-size:clamp(1.35rem,3.6vw,2rem);letter-spacing:.1em;line-height:1.15;color:var(--cyan);text-shadow:0 0 18px rgba(79,227,255,.7)}
 .brand span{color:var(--amber)}
 .tag{color:var(--text);margin:.3rem 0 0;text-shadow:0 1px 8px #000,0 0 14px #000}
-.dock{pointer-events:auto;margin:auto auto 0;width:100%;max-width:1100px;display:grid;grid-template-columns:1.25fr 1.25fr .8fr;gap:.8rem;
+.dock{pointer-events:auto;margin:auto auto 0;width:100%;max-width:760px;display:grid;grid-template-columns:1.3fr 1fr;gap:.8rem;
   padding:.9rem;border-radius:24px 24px 0 0;border:1px solid var(--line);border-bottom:0;
   background:linear-gradient(180deg,rgba(10,22,48,.78),rgba(3,8,20,.94));
   box-shadow:0 -12px 60px rgba(79,227,255,.2),inset 0 1px 0 rgba(79,227,255,.55)}
@@ -84,8 +84,7 @@ body.reduce *{animation:none!important}
 .panel label{font-weight:700;color:var(--text)}
 .panel p.hint{margin:0;color:var(--muted)}
 .row{display:flex;flex-wrap:wrap;gap:.6rem}
-input[type=date],select{min-height:44px;padding:.4rem .7rem;border-radius:12px;border:1.5px solid var(--cyan);background:#06122a;color:var(--text);color-scheme:dark;width:100%}
-input[type=date]{flex:1 1 170px;width:auto}
+select{min-height:44px;padding:.4rem .7rem;border-radius:12px;border:1.5px solid var(--cyan);background:#06122a;color:var(--text);color-scheme:dark;width:100%}
 .panel .btn{justify-content:center}
 .panel .seg .btn{flex:1;justify-content:center}
 #nearest{grid-column:1/-1;min-height:1.6rem;margin:0;color:var(--amber);font-weight:700;text-align:center}
@@ -158,13 +157,7 @@ body.text-mode .scan{display:none}
   <button id="btnReturn" class="btn primary" type="button" aria-label="Return to Time Machine (Escape key)" disabled>
     <span aria-hidden="true">⟲</span> Return to Time Machine <kbd aria-hidden="true">Esc</kbd></button>
   <div class="tools">
-    <div class="seg" role="group" aria-label="Reading level">
-      <button id="lvlE" class="btn" type="button" aria-pressed="true" aria-label="Explorer reading level, ages 8 to 10">Explorer</button>
-      <button id="lvlS" class="btn" type="button" aria-pressed="false" aria-label="Scientist reading level, ages 11 to 14">Scientist</button>
-    </div>
     <button id="btnSound" class="btn" type="button" aria-pressed="true" aria-label="Sound effects and narration">Sound: On</button>
-    <button id="btnReduce" class="btn" type="button" aria-pressed="false" aria-label="Reduce motion">Reduce motion</button>
-    <button id="btnText" class="btn" type="button" aria-pressed="false" aria-label="Text-only mode">Text-only mode</button>
     <details id="log" class="log">
       <summary aria-label="Journey Log: events explored"><span id="logCount">0 of 14 explored</span></summary>
       <ol id="logList" aria-label="Events explored"></ol>
@@ -176,33 +169,24 @@ body.text-mode .scan{display:none}
   <!-- ============ HUB ============ -->
   <section id="hub" aria-labelledby="hubTitle">
     <div class="hubhead">
-      <h1 id="hubTitle" class="brand">CHRONO<span>-</span>PROBE</h1>
-      <p class="tag">You are strapped into the Time Machine. Use the dashboard to choose when and where to travel, then visit hardware NASA left behind.</p>
+      <h1 id="hubTitle" class="brand">NASA <span>SPACE</span> TIME MACHINE</h1>
+      <p class="tag">You are strapped into the Time Machine. Use the dashboard to choose where to travel, or let luck decide, then visit hardware NASA left behind.</p>
     </div>
     <div id="dock" class="dock" role="group" aria-label="Time Machine dashboard controls">
-      <form id="dateForm" class="panel" novalidate aria-labelledby="hDate">
-        <h2 id="hDate">1. Set the date</h2>
-        <label for="dateIn">Travel date (YYYY-MM-DD)</label>
-        <div class="row">
-          <input id="dateIn" type="date" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" aria-describedby="nearest">
-          <button class="btn primary" type="submit" aria-label="Travel to the event nearest to the chosen date">Travel</button>
-        </div>
-        <p class="hint">We fly you to the nearest event.</p>
-      </form>
       <div class="panel" role="group" aria-labelledby="hDest">
-        <h2 id="hDest">2. Pick a destination</h2>
+        <h2 id="hDest">1. Pick a destination</h2>
         <div class="seg" role="group" aria-label="Destination">
-          <button id="btnMoon" class="btn" type="button" aria-pressed="false" aria-label="Destination: Moon">Moon</button>
+          <button id="btnMoon" class="btn" type="button" aria-pressed="true" aria-label="Destination: Moon">Moon</button>
           <button id="btnMars" class="btn" type="button" aria-pressed="false" aria-label="Destination: Mars">Mars</button>
         </div>
         <label for="missionSel">Mission</label>
         <div class="row">
           <select id="missionSel" aria-label="Mission at the chosen destination" style="flex:1 1 150px;width:auto"></select>
-          <button id="btnGo" class="btn primary" type="button" aria-label="Launch to the chosen destination" disabled>Launch</button>
+          <button id="btnGo" class="btn primary" type="button" aria-label="Launch to the chosen destination">Launch</button>
         </div>
       </div>
       <div class="panel" role="group" aria-labelledby="hLuck">
-        <h2 id="hLuck">3. Feeling lucky?</h2>
+        <h2 id="hLuck">2. Feeling lucky?</h2>
         <p class="hint">Jump to any event at random.</p>
         <button id="btnSurprise" class="btn amber" type="button" aria-label="Surprise Me: travel to a random event">Surprise Me</button>
       </div>
@@ -251,11 +235,11 @@ body.text-mode .scan{display:none}
 </main>
 
 <div id="announce" class="sr-only" role="status" aria-live="polite"></div>
-<noscript><p style="position:relative;z-index:99;padding:1rem">CHRONO-PROBE needs JavaScript. Please enable it and reload.</p></noscript>
+<noscript><p style="position:relative;z-index:99;padding:1rem">NASA Space Time Machine needs JavaScript. Please enable it and reload.</p></noscript>
 
 <script type="module">
 /* =====================================================================
-   CHRONO-PROBE — sections:
+   NASA Space Time Machine — sections:
    1 DATA · 2 STORY TEXT · 3 HELPERS (tween) · 4 STATE · 4b AUDIO · 5 UI
    6 STATE MACHINE · 7 ENGINE (3D) · 8 SCENE BUILDERS · 9 MODEL BUILDERS · 10 BOOT
    ===================================================================== */
@@ -549,8 +533,8 @@ const Voice = (()=>{
 
 /* ===================== 5. UI ===================== */
 const el = {};
-["hub","travel","story","counter","counterNote","flash","nearest","dateIn","dateForm","btnSurprise","btnReturn","btnPrev","btnNext",
- "btnReduce","btnText","btnSound","lvlE","lvlS","dock","missionSel","btnGo","btnMoon","btnMars","eventList","logCount","logList","evName","fDate","fDest","fSite","fNow",
+["hub","travel","story","counter","counterNote","flash","nearest","btnSurprise","btnReturn","btnPrev","btnNext",
+ "btnSound","dock","missionSel","btnGo","btnMoon","btnMars","eventList","logCount","logList","evName","fDate","fDest","fSite","fNow",
  "fStatus","chnav","chTitle","chText","unknownOverlay","announce","sheetToggle","stage"].forEach(id=>el[id]=$(id));
 
 function setView(v){
@@ -577,17 +561,21 @@ function pick(list){
   const pool = list.filter(e=>e.id!==S.lastId), from = pool.length ? pool : list;
   return from[Math.floor(Math.random()*from.length)];
 }
-/** Destination switch (Moon / Mars). Clicking the active one clears it. Fills the mission list. */
+/** Destination switch (Moon / Mars): one is always selected. Fills the mission list with that destination's missions. */
 function setDest(d){
-  S.dest = S.dest===d ? null : d;
-  Stage.hubInfo({dest:S.dest});
+  S.dest = d;
   el.btnMoon.setAttribute("aria-pressed",S.dest==="Moon"); el.btnMars.setAttribute("aria-pressed",S.dest==="Mars");
   const sel = el.missionSel; sel.innerHTML="";
-  if(!S.dest){ sel.add(new Option("Choose Moon or Mars first","")); sel.disabled=true; el.btnGo.disabled=true; return; }
-  sel.disabled=false; el.btnGo.disabled=false;
+  el.btnGo.disabled=false;
   sel.add(new Option(`Random ${S.dest} mission`,""));
   EVENTS.filter(e=>e.dest===S.dest).sort((a,b)=>a.date<b.date?-1:1)
     .forEach(e=>sel.add(new Option(`${e.date.slice(0,4)} — ${e.name}`,e.id)));
+  syncHolo();
+}
+/** Cockpit hologram mirrors the dashboard: destination, plus the date of the chosen mission (if one is picked). */
+function syncHolo(){
+  const ev = EVENTS.find(e=>e.id===el.missionSel.value);
+  Stage.hubInfo({dest:S.dest, date:ev?ev.date:""});
 }
 
 function renderLog(){
@@ -642,16 +630,11 @@ function setSound(on){
   S.sound=on; el.btnSound.setAttribute("aria-pressed",on); el.btnSound.textContent = on?"Sound: On":"Sound: Off";
   Sfx.mute(!on); if(!on) Voice.stop();
 }
-function setLevel(l){
-  S.level=l; Voice.stop();
-  el.lvlE.setAttribute("aria-pressed",l==="explorer"); el.lvlS.setAttribute("aria-pressed",l==="scientist");
-  if(S.state==="DESTINATION") renderStory();
-}
-function setReduce(on){ S.reduce=on; document.body.classList.toggle("reduce",on); el.btnReduce.setAttribute("aria-pressed",on); }
+/** No on-screen toggle: motion is reduced only when the system "reduce motion" setting is on. */
+function setReduce(on){ S.reduce=on; document.body.classList.toggle("reduce",on); }
 function setTextMode(on){
   if(on && S.state!=="HUB" && S.state!=="DESTINATION") return;
   S.text=on; document.body.classList.toggle("text-mode",on);
-  el.btnText.setAttribute("aria-pressed",on);
   el.stage.hidden = on;
   Stage.setActive(!on && Stage.ready);
   if(on) el.unknownOverlay.hidden = true;
@@ -668,17 +651,8 @@ function setSheet(open){
 }
 
 function bindUI(){
-  buildEventList(); buildChapterNav(); renderLog(); setDest(null);
-  el.dateIn.addEventListener("input",()=>Stage.hubInfo({date:el.dateIn.value}));
-  el.dateForm.addEventListener("submit",e=>{
-    e.preventDefault();
-    const v = el.dateIn.value.trim();
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(parseISO(v))){ el.nearest.textContent="Please enter a date as YYYY-MM-DD."; return; }
-    const {ev,days} = nearest(v);
-    const note = days===0 ? `Exact match! ${ev.name}` : `Nearest event: ${ev.name} — ${days} ${days===1?"day":"days"} from your date`;
-    el.nearest.textContent = note;
-    go(ev,note);
-  });
+  buildEventList(); buildChapterNav(); renderLog(); setDest("Moon");
+  el.missionSel.addEventListener("change",syncHolo);
   el.btnSurprise.addEventListener("click",()=>{
     const ev = pick(EVENTS);
     el.nearest.textContent = `Surprise! Heading to ${ev.name}.`;
@@ -696,10 +670,6 @@ function bindUI(){
   el.btnReturn.addEventListener("click",returnToHub);
   el.btnPrev.addEventListener("click",()=>setChapter(S.chapter-1));
   el.btnNext.addEventListener("click",()=>setChapter(S.chapter+1));
-  el.lvlE.addEventListener("click",()=>setLevel("explorer"));
-  el.lvlS.addEventListener("click",()=>setLevel("scientist"));
-  el.btnReduce.addEventListener("click",()=>setReduce(!S.reduce));
-  el.btnText.addEventListener("click",()=>setTextMode(!S.text));
   el.sheetToggle.addEventListener("click",()=>setSheet(!S.sheetOpen));
   addEventListener("keydown",e=>{ if(e.key==="Escape" && S.state==="DESTINATION"){ e.preventDefault(); returnToHub(); } });
   matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change",e=>setReduce(e.matches));
@@ -707,17 +677,6 @@ function bindUI(){
   el.btnSound.addEventListener("click",()=>setSound(!S.sound));
   Voice.onchange=()=>[...el.chnav.children].forEach((li,i)=>li.firstChild.classList.toggle("speaking",Voice.active===i));
   document.addEventListener("visibilitychange",()=>{ if(document.hidden) Voice.stop(); });
-}
-
-/** Nearest event to an ISO date; ties go to the earlier event. */
-function nearest(iso){
-  const t = parseISO(iso).getTime();
-  let best=null, bd=Infinity;
-  [...EVENTS].sort((a,b)=>a.date<b.date?-1:1).forEach(ev=>{
-    const d = Math.abs(parseISO(ev.date).getTime()-t);
-    if(d<bd){ bd=d; best=ev; }
-  });
-  return {ev:best, days:Math.round(bd/86400000)};
 }
 
 /* ===================== 6. STATE MACHINE: HUB → TRAVEL → DESTINATION → RETURN ===================== */
@@ -769,7 +728,7 @@ async function transition(ev,dir,note){
     S.state="HUB"; S.current = null;
     el.unknownOverlay.hidden = true;
     setView("hub");
-    el.dateIn.focus({preventScroll:true});
+    el.btnMoon.focus({preventScroll:true});
     say("Back at the Time Machine.");
   }
   if(!text) await flash(false,700);
@@ -891,7 +850,7 @@ async function initEngine(){
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   el.stage.appendChild(renderer.domElement);
   renderer.domElement.setAttribute("aria-hidden","true");
-  renderer.domElement.addEventListener("webglcontextlost",e=>{ e.preventDefault(); engineActive=false; Stage.ready=false; el.btnText.disabled=true; setTextMode(true); });
+  renderer.domElement.addEventListener("webglcontextlost",e=>{ e.preventDefault(); engineActive=false; Stage.ready=false; setTextMode(true); });
 
   camera = new THREE.PerspectiveCamera(55,w/h,.1,3000);
   controls = new OrbitControls(camera, renderer.domElement);
@@ -1743,10 +1702,10 @@ MODELS.ingenuity=function(){
   try{
     await initEngine();
     Stage.ready = true;
+    syncHolo();                              // hologram shows the preselected destination
   }catch(err){
     // No WebGL (or CDN blocked): fall back to the accessible text-only experience
     console.warn("3D unavailable, using Text-only mode:", err.message);
-    el.btnText.disabled = true;
     setTextMode(true);
     el.nearest.textContent = "3D graphics are unavailable, so Text-only mode is on. Pick any event below.";
   }
